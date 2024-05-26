@@ -302,38 +302,26 @@ const salesYearly = async (req, res) => {
         console.log(error.message);
     }
 }
-
 const generatePdf = async (req, res) => {
     try {
         const doc = new PDFDocument({ margin: 20 });
         const filename = 'sales-report.pdf';
         const orders = req.body;
-        console.log(orders, ".....>>>>orders");
 
         // Initialize totals
         let totalOrders = 0;
         let totalAmount = 0;
-        let totalDiscount = 0;
+        let totalProductDiscount = 0;
+        let totalCouponDiscount = 0;
         let totalFinalPrice = 0;
 
         // Calculate totals and log every field
         orders.forEach((order, index) => {
-            console.log(`Order ${index + 1}:`);
-            console.log(`Data ID: ${order.dataId}`);
-            console.log(`Name: ${order.name}`);
-            console.log(`Product: ${order.product}`);
-            console.log(`Date: ${order.date}`);
-            console.log(`Payment: ${order.payment}`);
-            console.log(`Status: ${order.status}`);
-            console.log(`Total Amount: ${order.totalAmount}`);
-            console.log(`Product Cutoff: ${order.productCutoff}`);
-            console.log(`Coupon Cutoff: ${order.couponCutoff}`);
-            console.log(`Final Price: ${order.finalPrice}`);
-
             // Calculate totals
             totalOrders += 1;
             totalAmount += order.totalAmount || 0;
-            totalDiscount += (order.productCutoff || 0) + (order.couponCutoff || 0);
+            totalProductDiscount += order.productCutoff || 0;
+            totalCouponDiscount += order.couponCutoff || 0;
             totalFinalPrice += order.finalPrice || 0;
         });
 
@@ -349,10 +337,10 @@ const generatePdf = async (req, res) => {
             'Order ID', 'Name', 'Date', 'Payment', 'Status',
             'Total', 'Product Discount', 'Coupon Discount', 'Final Price'
         ];
-        const headerWidths = [60, 60, 60, 60, 50, 50, 70, 70, 70]; // Adjusted widths
+        const headerWidths = [90, 60, 60, 60, 50, 50, 50, 50, 50]; // Adjusted widths
         let headerX = 20;
         let headerY = doc.y; // Adjusted header Y position
-        const headerPadding = 20; // Padding between header and data
+        const headerPadding = 30; // Padding between header and data
 
         headers.forEach((header, index) => {
             doc.fontSize(10).text(header, headerX, headerY, { width: headerWidths[index], align: 'center' });
@@ -363,7 +351,7 @@ const generatePdf = async (req, res) => {
             .lineTo(doc.page.width - 20, headerY + headerPadding)
             .stroke();
 
-        let dataY = headerY + headerPadding + 5; // Adjusted data Y position with additional padding
+        let dataY = headerY + headerPadding + 10; // Adjusted data Y position with additional padding
 
         // Add order data
         orders.forEach(order => {
@@ -406,7 +394,9 @@ const generatePdf = async (req, res) => {
             .moveDown(0.5)
             .text(`Overall Order Amount: ₹${totalAmount.toFixed(2)}`, { align: 'left' })
             .moveDown(0.5)
-            .text(`Overall Discount: ₹${totalDiscount.toFixed(2)}`, { align: 'left' })
+            .text(`Overall Product Discount: ₹${totalProductDiscount.toFixed(2)}`, { align: 'left' })
+            .moveDown(0.5)
+            .text(`Overall Coupon Discount: ₹${totalCouponDiscount.toFixed(2)}`, { align: 'left' })
             .moveDown(0.5)
             .text(`Overall Final Price: ₹${totalFinalPrice.toFixed(2)}`, { align: 'left' });
 
@@ -416,6 +406,7 @@ const generatePdf = async (req, res) => {
         res.status(500).send('Error generating PDF report');
     }
 };
+
 
 const downloadExcel = async (req, res) => {
     try {
@@ -439,7 +430,8 @@ const downloadExcel = async (req, res) => {
         const orders = req.body;
 
         let overallFinalPrice = 0;
-        let overallDiscount = 0;
+        let overallProductCutoff = 0;
+        let overallCouponCutoff = 0;
         let overallOrderAmount = 0;
         let salesCount = orders.length;
 
@@ -447,10 +439,12 @@ const downloadExcel = async (req, res) => {
         orders.forEach(order => {
             const finalPrice = order.finalPrice;
             const couponCutoff = order.couponCutoff;
+            const productCutoff = order.productCutoff;
             const totalAmount = order.totalAmount;
 
             overallFinalPrice += finalPrice;
-            overallDiscount += couponCutoff;
+            overallCouponCutoff += couponCutoff;
+            overallProductCutoff += productCutoff;
             overallOrderAmount += totalAmount;
 
             worksheet.addRow({
@@ -460,7 +454,7 @@ const downloadExcel = async (req, res) => {
                 date: order.date,
                 payment: order.payment,
                 totalAmount: totalAmount,
-                productCutoff: order.productCutoff,
+                productCutoff: productCutoff,
                 couponCutoff: couponCutoff,
                 finalPrice: finalPrice,
                 status: order.status,
@@ -472,7 +466,9 @@ const downloadExcel = async (req, res) => {
         worksheet.addRow({ orderId: 'Overall Summary' });
         worksheet.addRow({ orderId: 'Sales Count:', customer: salesCount });
         worksheet.addRow({ orderId: 'Overall Order Amount:', customer: overallOrderAmount });
-        worksheet.addRow({ orderId: 'Overall Discount:', customer: overallDiscount });
+        worksheet.addRow({ orderId: 'Overall product discount:', customer: overallProductCutoff });
+        worksheet.addRow({ orderId: 'Overall coupon discount:', customer: overallCouponCutoff });
+        worksheet.addRow({ orderId: 'Overall Discount:', customer: overallProductCutoff + overallCouponCutoff });
         worksheet.addRow({ orderId: 'Overall Final Price:', customer: overallFinalPrice });
 
         // Add styling to the overall summary section

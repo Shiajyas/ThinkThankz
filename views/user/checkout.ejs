@@ -417,7 +417,7 @@
                                 showConfirmButton: true,
                                 timer: 2000,
                             })
-                            location.href("/orderHistory")
+                            location.href = '/profile';
                         } else if (response.method === "online") {
 
                             let orderAmount = Math.round(numericValue * 100)
@@ -455,7 +455,7 @@
                                     showConfirmButton: true,
                                     timer: 2000,
                                 });
-
+                                location.href = '/profile';
                             } else {
                                 // Handle the case when the response status is not successful
                                 Swal.fire({
