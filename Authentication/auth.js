@@ -18,7 +18,7 @@ const isLogged = (req, res, next)=>{
 
 const isAdmin = (req, res, next) => {
     if (req.session.admin) {
-        User.findOne({ isAdmin: "1" })
+        User.findOne({ isAdmin: "1" }).lean()
             .then((data) => {
                 if (data) {
                     next();
@@ -35,8 +35,14 @@ const isAdmin = (req, res, next) => {
     }
 };
 
+const disableCache = (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    next();
+};
+
 
 module.exports = {
     isLogged,
-    isAdmin
+    isAdmin,
+    disableCache
 }

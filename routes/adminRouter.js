@@ -9,14 +9,16 @@ const brandController = require("../controllers/brandController")
 const orderContoller = require("../controllers/orderContoller")
 
 
-const { isAdmin } = require("../Authentication/auth")
+const { isAdmin ,
+    disableCache
+} = require("../Authentication/auth")
 
 
 //Admin Actions
 Router.get("/login", adminController.getLoginPage)
 Router.post("/login", adminController.verifyLogin)
 Router.get("/logout", isAdmin, adminController.getLogout)
-Router.get("/", isAdmin, adminController.adminDashboard)
+Router.get("/", disableCache,isAdmin, adminController.adminDashboard)
 
 
 // Category Management
@@ -65,8 +67,8 @@ Router.post("/removeProductOffer", isAdmin, productController.removeProductOffer
 
 //RetturnRequest
 Router.get("/manageReturnRequests", isAdmin, adminController.returnRequest)
-Router.put('/returnRequests/approve/:returnId', adminController.approveReturnRequest);
-Router.put('/returnRequests/decline/:returnId', adminController.declineReturnRequest);
+Router.put('/returnRequests/approve/:returnId', isAdmin, adminController.approveReturnRequest);
+Router.put('/returnRequests/decline/:returnId', isAdmin, adminController.declineReturnRequest);
 
 
 // Order Management

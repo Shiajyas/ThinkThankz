@@ -151,26 +151,31 @@
                         <p> We found <strong class="text-brand"><%= locals.count %></strong> items for you!</p>
                        <% } %>
                     </div>
+                   
                     <div class="sort-by-product-area">
-                       
+                        <select id="sortByDropdown" onchange="handleSortChange(this.value)">
+                            <option value="featured" selected>Featured</option>
+                            <option value="lowToHigh">Price: Low to High</option>
+                            <option value="highToLow">Price: High to Low</option>
+                            <option value="releaseDate">Release Date</option>
+                        </select>
                         
-
-                        <div class="sort-by-product-wrap">
-                            <div class="sort-by">
-                                <span><i class="fi-rs-apps-sort"></i>Sort by:</span>
-                            </div>
-                            <div class="sort-by-dropdown-wrap">
-                                <select id="sortByDropdown" onchange="handleSortChange(this.value, getCurrentPageFromURL(this))">
-                                    <option value="featured" selected>Featured</option>
-                                    <option value="lowToHigh">Price: Low to High</option>
-                                    <option value="highToLow">Price: High to Low</option>
-                                    <option value="releaseDate">Release Date</option>
-                                </select>
-                            </div>
-                        </div>
-
-
+                        <select id="categoryFilter" onchange="handleCategoryChange(this.value)">
+                            <option value="">All Categories</option>
+                            <% category.forEach(category => { %>
+                                <option value="<%= category._id %>" <%= selectedCategory == category._id ? 'selected' : '' %>><%= category.name %></option>
+                            <% }); %>
+                        </select>
+                        
+                        <select id="brandFilter" onchange="handleBrandChange(this.value)">
+                            <option value="">All Brands</option>
+                            <% brand.forEach(brand => { %>
+                                <option value="<%= brand._id %>" <%= selectedBrand == brand._id ? 'selected' : '' %>><%= brand.brandName %></option>
+                            <% }); %>
+                        </select>
                     </div>
+                    
+                    
                 </div>
                 <div class="row product-grid-3">
 
@@ -277,10 +282,10 @@
                         <div class="price-filter-inner">
                             <form id="price-filter-form">
                                 <div class="price-options">
-                                    <a href="/filterPrice?gt=0&lt=50000"><button type="button" class="price-button" data-value="under-50000">Under $50,000</button></a>
-                                    <a href="/filterPrice?gt=50000&lt=100000"><button type="button" class="price-button" data-value="50k-to-100k">$50,000 - $100,000</button></a>
-                                    <a href="/filterPrice?gt=100000&lt=150000"><button type="button" class="price-button" data-value="100k-to-150k">$100,000 - $150,000</button></a>
-                                    <a href="/filterPrice?gt=150000&lt=1000000"><button type="button" class="price-button" data-value="above-150k">Above $150,000</button></a>
+                                    <a href="/filter?gt=0&lt=1000"><button type="button" class="price-button" data-value="under-50000">Under $1,000</button></a>
+                                    <a href="/filter?gt=1000&lt=3000"><button type="button" class="price-button" data-value="50k-to-100k">$1,000 - $3,000</button></a>
+                                    <a href="/filter?gt=3000&lt=10000"><button type="button" class="price-button" data-value="100k-to-150k">$3,000 - $10,000</button></a>
+                                    <a href="/filter?gt=10000&lt=50000"><button type="button" class="price-button" data-value="above-150k">Above $10,000</button></a>
                                     <input type="hidden" id="selected-price" name="selected-price" value="">
                                 </div>
                             </form>
@@ -289,8 +294,7 @@
                 </div>
                 
                 
-                
-         
+            
             </div>
         </div>
     </div>
@@ -393,78 +397,6 @@ function getCurrentPageFromURL(element) {
 }
 
 
-function handleSortChange(selectedOption){
-    // console.log(selectedOption);
-    let option = selectedOption;
-    $.ajax({
-        url: "/sortProducts",
-        method: "POST",
-        data: {
-            option: option,
-            // page: page
-        },
-        success: (response) => {
-            if (response.status === true) {
-                // Assuming the server returns an array of products in response.data
-                const sortedProducts = response.data;
-                console.log(sortedProducts);
-                // Clear existing product grid content
-                $(".product-grid-3").empty();
-                // $(".pagination").empty();
-
-                // Render each product in the container
-                sortedProducts.currentProduct.forEach((product) => {
-                    const productDiv = $("<div class='col-lg-4 col-md-4 col-12 col-sm-6'>" +
-                        "<div class='product-cart-wrap mb-30'>" +
-                        "<div class='product-img-action-wrap'>" +
-                        "<div class='product-img product-img-zoom'>" +
-                        "<a href='/productDetails?id=" + product.id + "'>" +
-                        "<img class='default-img' src='/uploads/product-images/" + product.productImage[0] + "' alt=''>" +
-                        "</a>" +
-                        "</div>" +
-                        "<div class='product-action-1'>" +
-                        "<a aria-label='Add To Wishlist' class='action-btn hover-up' href='javascript:void(0);' onclick='addToWishlist(\"" + product._id + "\")'>" +
-                        "<i class='fi-rs-heart'></i>" +
-                        "</a>" +
-                        "</div>" +
-                        "<div class='product-badges product-badges-position product-badges-mrg'>" +
-                        "<span class='hot'>Hot</span>" +
-                        "</div>" +
-                        "</div>" +
-                        "<div class='product-content-wrap'>" +
-                        "<div class='product-category'>" +
-                        "<a href='shop-grid-right.html'>" + product.brand + "</a>" +
-                        "</div>" +
-                        "<h2><a href='shop-product-right.html'>" + product.productName + "</a></h2>" +
-                        "<div class='product-price'>" +
-                        "<span>₹" + product.salePrice.toLocaleString('en-IN') + "</span>" +
-                        "<span class='old-price'>₹" + product.regularPrice.toLocaleString('en-IN') + "</span>" +
-                        "</div>" +
-                        "<div class='product-action-1 show'>" +
-                        "<a aria-label='Add To Cart' class='action-btn hover-up' href='shop-cart.html'>" +
-                        "<i class='fi-rs-shopping-bag-add'></i>" +
-                        "</a>" +
-                        "</div>" +
-                        "</div>" +
-                        "</div>" +
-                        "</div>");
-
-                    // Append the productDiv to the product grid
-                    $(".product-grid-3").append(productDiv);
-                    // $("#pagination").html(response.data.totalPages);
-                });
-            } else {
-                console.error("Error in sorting products:", response);
-            }
-        }
-    });
-}
-
-
-
-
-
-
     
 </script>
 
@@ -555,6 +487,73 @@ function handleSortChange(selectedOption){
     </div>
 </div>
 </div>
+
+<script>
+    function handleSortChange(selectedOption) {
+    const category = document.getElementById('categoryFilter').value || null;
+    const brand = document.getElementById('brandFilter').value || null;
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (category) {
+        urlParams.set('category', category);
+    } else {
+        urlParams.delete('category');
+    }
+
+    if (brand) {
+        urlParams.set('brand', brand);
+    } else {
+        urlParams.delete('brand');
+    }
+
+    urlParams.set('sort', selectedOption);
+    window.location.search = urlParams.toString();
+}
+
+function handleCategoryChange(selectedCategory) {
+    const sort = document.getElementById('sortByDropdown').value;
+    const brand = document.getElementById('brandFilter').value || null;
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (selectedCategory) {
+        urlParams.set('category', selectedCategory);
+    } else {
+        urlParams.delete('category');
+    }
+
+    if (brand) {
+        urlParams.set('brand', brand);
+    } else {
+        urlParams.delete('brand');
+    }
+
+    urlParams.set('sort', sort);
+    window.location.search = urlParams.toString();
+}
+
+function handleBrandChange(selectedBrand) {
+    const sort = document.getElementById('sortByDropdown').value;
+    const category = document.getElementById('categoryFilter').value || null;
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (selectedBrand) {
+        urlParams.set('brand', selectedBrand);
+    } else {
+        urlParams.delete('brand');
+    }
+
+    if (category) {
+        urlParams.set('category', category);
+    } else {
+        urlParams.delete('category');
+    }
+
+    urlParams.set('sort', sort);
+    window.location.search = urlParams.toString();
+}
+
+</script>
+
 <script>
     function addToCart(prodId) {
 

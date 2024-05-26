@@ -564,9 +564,16 @@ const adminDashboard = async (req, res) => {
             // Increment the count for the corresponding month
             productPerMonth[createdMonth]++;
         });
+   
+        const admin = req.session.admin
 
+        if(admin){
+            res.render("index", { orderCount, productCount, categoryCount, totalRevenue, monthlyRevenue, monthlySalesArray, productPerMonth, latestOrders })
+        }else{
+            res.redirect("/admin/login")
+        }
 
-        res.render("index", { orderCount, productCount, categoryCount, totalRevenue, monthlyRevenue, monthlySalesArray, productPerMonth, latestOrders })
+       
     } catch (error) {
         console.log(error.message);
     }
