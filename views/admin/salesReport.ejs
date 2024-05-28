@@ -35,45 +35,61 @@
 
     <div class="card mb-4">
         <header class="card-header">
-            <div class="row gx-3">
-
-
-                <div class="col-lg-2 col-6 col-md-3">
-                    <select class="form-select" onchange="location.href='/admin/salesReport?day=' + this.value">
-                        <% if (locals.salesToday) { %>
-                            <option value="salesToday" selected>salesToday</option>
-                            <option value="salesWeekly">salesWeekly</option>
-                            <option value="salesMonthly">salesMonthly</option>
-                            <option value="salesYearly">salesYearly</option>
+            <div class="container">
+                <div class="row gx-3">
+                    <!-- Sales Report Selection -->
+                    <div class="col-lg-2 col-md-3 col-6">
+                        <label for="salesReportSelection">Select Sales Report</label>
+                        <select id="salesReportSelection" class="form-select" onchange="location.href='/admin/salesReport?day=' + this.value">
+                            <% if (locals.salesToday) { %>
+                                <option value="salesToday" selected>Sales Today</option>
+                                <option value="salesWeekly">Sales Weekly</option>
+                                <option value="salesMonthly">Sales Monthly</option>
+                                <option value="salesYearly">Sales Yearly</option>
                             <% } else if (locals.salesWeekly) { %>
-                                <option value="salesWeekly" selected>salesWeekly</option>
-                                <option value="salesToday">salesToday</option>
-                                <option value="salesMonthly">salesMonthly</option>
-                                <option value="salesYearly">salesYearly</option>
-                                <% } else if (locals.salesMonthly) { %>
-                                    <option value="salesMonthly" selected>salesMonthly</option>
-                                    <option value="salesToday">salesToday</option>
-                                    <option value="salesWeekly">salesWeekly</option>
-                                    <option value="salesYearly">salesYearly</option>
-                                    <% } else if (locals.salesYearly) { %>
-                                        <option value="salesYearly" selected>salesYearly</option>
-                                        <option value="salesToday">salesToday</option>
-                                        <option value="salesWeekly">salesWeekly</option>
-                                        <option value="salesMonthly">salesMonthly</option>
-                                        <% } %>
-                    </select>
+                                <option value="salesWeekly" selected>Sales Weekly</option>
+                                <option value="salesToday">Sales Today</option>
+                                <option value="salesMonthly">Sales Monthly</option>
+                                <option value="salesYearly">Sales Yearly</option>
+                            <% } else if (locals.salesMonthly) { %>
+                                <option value="salesMonthly" selected>Sales Monthly</option>
+                                <option value="salesToday">Sales Today</option>
+                                <option value="salesWeekly">Sales Weekly</option>
+                                <option value="salesYearly">Sales Yearly</option>
+                            <% } else if (locals.salesYearly) { %>
+                                <option value="salesYearly" selected>Sales Yearly</option>
+                                <option value="salesToday">Sales Today</option>
+                                <option value="salesWeekly">Sales Weekly</option>
+                                <option value="salesMonthly">Sales Monthly</option>
+                            <% } %>
+                        </select>
+                    </div>
+        
+                    <!-- Single Date Selection -->
+                    <div class="col-md-2 col-6">
+                        <label for="selectedDate">Select Date</label>
+                        <input type="date" id="selectedDate" class="form-control" value="<%= locals.date ? date : '' %>" onchange="dateWiseFilter()">
+                    </div>
+        
+                    <!-- Date Range Selection -->
+                    <div class="col-md-2 col-6">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" class="form-control" value="<%= locals.startDate ? startDate : '' %>" onchange="dateRangeFilter()">
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" class="form-control" value="<%= locals.endDate ? endDate : '' %>" onchange="dateRangeFilter()">
+                    </div>
+        
+                    <!-- Generate Reports Buttons -->
+                    <div class="col-lg-6 col-md-6 ms-auto text-md-end">
+                        <a href="" id="createSalesReport" class="btn btn-primary mb-2">Generate PDF</a>
+                        <a href="" id="downloadExcelReport" class="btn btn-success mb-2">Download Excel</a>
+                    </div>
                 </div>
-                <div class="col-md-2 col-6">
-                    <input type="date" id="selectedDate" class="form-control" value="<%= locals.date ? date : '' %>" onchange="dateWiseFilter()">
-
-                </div>
-                <div class="col-lg-6 col-md-6 ms-auto text-md-end">
-                    <a href="" id="createSalesReport" class="btn btn-primary mb-2">Generate PDF</a>
-                    <a href="" id="downloadExcelReport" class="btn btn-success mb-2">Download Excel</a>
-                </div>
-
             </div>
         </header>
+        
     </div>
 
 
@@ -275,6 +291,16 @@ document.getElementById('createSalesReport').addEventListener('click', async () 
         const selectedDate = document.getElementById("selectedDate").value;
         window.location.href = `/admin/dateWiseFilter?date=${selectedDate}`;
     }
+
+    function dateRangeFilter() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
+    if (startDate && endDate) {
+        const queryParams = new URLSearchParams({ startDate, endDate }).toString();
+        window.location.href = `/admin/dateRange?${queryParams}`;
+    }
+}
 </script>
 
 

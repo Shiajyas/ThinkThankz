@@ -42,7 +42,7 @@ Router.get("/addAddress", isLogged, userProfileController.getAddressAddPage)
 Router.post("/addAddress", isLogged, userProfileController.postAddress)
 Router.get("/editAddress", isLogged, userProfileController.getEditAddress),
 Router.post("/editAddress", isLogged, userProfileController.postEditAddress)
-Router.get("/deleteAddress", isLogged, userProfileController.getDeleteAddress)
+Router.delete("/deleteAddress", isLogged, userProfileController.getDeleteAddress)
 Router.post("/editUserDetails", isLogged, upload.array("images", 2), userProfileController.editUserDetails)
 Router.post("/verifyReferalCode", isLogged, userProfileController.verifyReferalCode)
 
@@ -60,12 +60,14 @@ Router.post("/addToCart", isLogged, cartController.addToCart)
 Router.post("/changeQuantity", isLogged, cartController.changeQuantity)
 Router.get("/deleteItem", isLogged, cartController.deleteProduct)
 
+
+
 //Orders
 Router.get("/checkout",isLogged, orderController.getCheckoutPage)
 Router.post("/orderPlaced", isLogged, orderController.orderPlaced)
 Router.get("/orderDetails", isLogged, orderController.getOrderDetailsPage)
 Router.get("/cancelOrder", isLogged, orderController.cancelOrder)
-Router.get("/cancelProduct", isLogged, orderController.cancelProduct)
+Router.post("/cancelProduct", isLogged,upload.none(), orderController.cancelProduct)
 Router.get("/return", isLogged, orderController.getReturnOrder)
 // Router.get("/returnProduct", isLogged, orderController.getReturnProduct)
 Router.post("/raiseReturnRequest", isLogged, orderController.returnProduct)

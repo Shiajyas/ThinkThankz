@@ -31,8 +31,7 @@ const editUserDetails = async (req, res) => {
 
         // Validate name field
         if (!data.name || data.name.trim() === "") {
-            req.flash("edit", "Please provide a valid name.");
-            return res.redirect("/profile"); // Assuming /profile/edit is the URL for editing user details
+            return res.status(400).json({ success: false, message: "Please provide a valid name." });
         }
 
         const images = [];
@@ -52,16 +51,15 @@ const editUserDetails = async (req, res) => {
                     // email: data.email,
                 }
             }
-        ).then((result) => console.log(result));
+        );
 
-        req.flash("edit", "User details updated.");
-        res.redirect("/profile");
+        res.status(200).json({ success: true, message: "User details updated." });
     } catch (error) {
         console.log(error.message);
-        req.flash("error", "An error occurred while updating user details.");
-        res.redirect("/profile/edit");
+        res.status(500).json({ success: false, message: "An error occurred while updating user details." });
     }
 };
+
 
 const getAddressAddPage = async (req, res) => {
     try {
@@ -75,9 +73,9 @@ const getAddressAddPage = async (req, res) => {
 
 const postAddress = async (req, res) => {
     try {
-        const user = req.session.user
+        const user = req.session.user;
         console.log(user);
-        const userData = await User.findOne({ _id: user })
+        const userData = await User.findOne({ _id: user });
         const {
             addressType,
             name,
@@ -88,8 +86,10 @@ const postAddress = async (req, res) => {
             phone,
             altPhone,
         } = req.body;
-        const userAddress = await Address.findOne({ userId: userData._id })
+
+        const userAddress = await Address.findOne({ userId: userData._id });
         console.log(userAddress);
+
         if (!userAddress) {
             console.log("fst");
             console.log(userData._id);
@@ -106,9 +106,9 @@ const postAddress = async (req, res) => {
                         phone,
                         altPhone,
                     },
-                ]
-            })
-            await newAddress.save()
+                ],
+            });
+            await newAddress.save();
         } else {
             console.log("scnd");
             userAddress.address.push({
@@ -120,16 +120,20 @@ const postAddress = async (req, res) => {
                 pincode,
                 phone,
                 altPhone,
-            })
-            await userAddress.save()
+            });
+            await userAddress.save();
         }
-        req.flash("edit","User Address Updated")
-        res.redirect("/profile")
+
+        // Send JSON response for success
+        res.json({ success: true, message: "Address added successfully." });
 
     } catch (error) {
         console.log(error.message);
+        // Send JSON response for error
+        res.status(500).json({ success: false, message: error.message });
     }
-}
+};
+
 
 const getEditAddress = async (req, res) => {
     try {
@@ -149,18 +153,18 @@ const getEditAddress = async (req, res) => {
     }
 }
 
-
 const postEditAddress = async (req, res) => {
     try {
         console.log(req.body);
-        const data = req.body
-        const addressId = req.query.id
+        const data = req.body;
+        const addressId = req.query.id;
 
-        console.log(addressId, "address id")
-        const user = req.session.user
+        console.log(addressId, "address id");
+        const user = req.session.user;
         const findAddress = await Address.findOne({ "address._id": addressId });
-        const matchedAddress = findAddress.address.find(item => item._id == addressId)
+        const matchedAddress = findAddress.address.find(item => item._id == addressId);
         console.log(matchedAddress);
+
         await Address.updateOne(
             {
                 "address._id": addressId,
@@ -181,40 +185,49 @@ const postEditAddress = async (req, res) => {
                     },
                 }
             }
-        ).then((result) => {
+        );
 
-            res.redirect("/profile")
-        })
+        // Send JSON response for success
+        res.json({ success: true, message: "Address updated successfully." });
+
     } catch (error) {
         console.log(error.message);
+        // Send JSON response for error
+        res.status(500).json({ success: false, message: error.message });
     }
-}
-
+};
 
 const getDeleteAddress = async (req, res) => {
     try {
+        const addressId = req.query.id;
+        console.log(addressId, ">>>>>");
+        if (!addressId) {
+            return res.status(400).json({ success: false, message: "Address ID is required" });
+        }
 
-        const addressId = req.query.id
-        const findAddress = await Address.findOne({ "address._id": addressId })
-        await Address.updateOne(
+        const result = await Address.updateOne(
             { "address._id": addressId },
             {
                 $pull: {
-                    address: {
-                        _id: addressId
-                    }
+                    address: { _id: addressId }
                 }
             }
-        )
-            .then((data) => {
-                req.flash("edit","User Address deleted")
-                res.redirect("/profile")
-            }
-            )
+        );
+
+        if (result.modifiedCount > 0) {
+            res.json({ success: true, message: "Address deleted successfully" });
+        } else {
+            res.status(404).json({ success: false, message: "Address not found" });
+        }
     } catch (error) {
         console.log(error.message);
+        res.status(500).json({ success: false, message: "Internal server error" });
     }
-}
+};
+
+
+
+;
 
 
 const getForgotPassPage = async (req, res) => {

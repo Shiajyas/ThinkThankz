@@ -103,8 +103,7 @@ const signupUser = async (req, res) => {
         const { email,name,referalCode } = req.body
         req.session.referalCode = referalCode
         if (!name || name.trim() === "") {
-            req.flash("edit", "Please provide a valid name.");
-            return res.redirect("/signup"); // Assuming /profile/edit is the URL for editing user details
+            res.render("signup", { message: "Give valid UserName" })
         }
         const findUser = await User.findOne({ email })
         if (req.body.password === req.body.cPassword) {

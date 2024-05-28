@@ -325,10 +325,6 @@ const generateOrderRazorpay = (orderId, total) => {
 
 
 
-
-
-
-
 const getOrderListPageAdmin = async (req, res) => {
     try {
         const orders = await Order.find({}).sort({ createdOn: -1 });
@@ -442,17 +438,26 @@ const getCartCheckoutPage = async (req, res) => {
 
 const getOrderDetailsPage = async (req, res) => {
     try {
-        const userId = req.session.user
-        const orderId = req.query.id
-        const findOrder = await Order.findOne({ _id: orderId })
-        const findUser = await User.findOne({ _id: userId })
-        // console.log(findOrder, findUser);
+        const userId = req.session.user;
+        const orderId = req.query.id;
+        
+        console.log('Received orderId:', orderId);
+        console.log('Received userId:', userId);
+
+        const findOrder = await Order.findOne({ _id: orderId });
+        const findUser = await User.findOne({ _id: userId });
+
+        console.log('Order found:', findOrder);
+        console.log('User found:', findUser);
+
         const returnRequests = await Return.find({ orderId: orderId }).populate('productId').sort({ createdAt: -1 });
+
         res.render("orderDetails", { orders: findOrder, user: findUser, returnRequests });
     } catch (error) {
-        console.log(error.message);
+        console.error('Error occurred:', error.message);
+        res.status(500).send('Internal Server Error');
     }
-}
+};
 
 
 const getOrderDetailsPageAdmin = async (req, res) => {
@@ -568,75 +573,94 @@ const getInvoice = async (req, res) => {
 
 const cancelProduct = async (req, res) => {
     try {
-        const userId = req.session.user
+        const userId = req.session.user;
         const findUser = await User.findOne({ _id: userId });
 
         if (!findUser) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const orderId = req.query.orderId;
-        const productId = req.query.productId;
+        const { productId, orderId, cancelQuantity } = req.body;
 
-        const order = await Order.findById(orderId);
+        console.log(req.body)
+
+        if (!productId || !orderId || !cancelQuantity || productId.length === 0 || orderId.length === 0 || cancelQuantity.length === 0) {
+            return res.status(400).json({ message: 'Invalid request data' });
+        }
+
+        const currentProductId = productId[0];
+        const currentOrderId = orderId[0];
+        const currentCancelQuantity = parseInt(cancelQuantity[0], 10);
+
+        const order = await Order.findById(currentOrderId);
 
         if (!order) {
-            console.log("Order not found");
-            return res.status(404).json({ message: 'Order not found' });
+            return res.status(404).json({ message: `Order with ID ${currentOrderId} not found` });
         }
 
-        const product = order.product.find(product => product._id.equals(productId));
-
-        if (!product) {
-            console.log("Product not found in the order");
-            return res.status(404).json({ message: 'Product not found in the order' });
+        const productIndex = order.product.findIndex(p => p._id.toString() === currentProductId.toString());
+        if (productIndex === -1) {
+            return res.status(404).json({ message: `Product with ID ${currentProductId} not found in order with ID ${currentOrderId}` });
         }
 
-        // Remove the product from the order's product array
-        order.product = order.product.filter(p => !p._id.equals(productId));
-         order.cancel.push(product)
-         order.totalPrice -= product.price * product.quantity
-        // Update total price if payment method is wallet or online
+        const product = order.product[productIndex];
+
+        if (currentCancelQuantity > product.quantity) {
+            return res.status(400).json({ message: `Cancel quantity ${currentCancelQuantity} exceeds available product quantity ${product.quantity}` });
+        }
+
+        // Update the product quantity in the order or remove if all canceled
+        if (currentCancelQuantity < product.quantity) {
+            order.product[productIndex].quantity -= currentCancelQuantity;
+        } else {
+            order.product.splice(productIndex, 1);
+        }
+
+        // Push the canceled product details to the cancel array
+        order.cancel.push({ ...product, quantity: currentCancelQuantity });
+
+        // Adjust the order's total price
+        const cancelAmount = product.price * currentCancelQuantity;
+        order.totalPrice -= cancelAmount;
+
+        // Mark the nested product array as modified
+        order.markModified('product');
+
+        // Update the order status to "Canceled" if all products are canceled
+        if (order.product.length === 0) {
+            order.status = "Canceled";
+        }
+
+        // Save the updated order
+        await order.save();
+
+        // Restore product stock by incrementing the canceled quantity
+        await Product.findByIdAndUpdate(currentProductId, { $inc: { quantity: currentCancelQuantity } });
+
+        // Add refunded amount to user's wallet if payment method is wallet or online
         if (order.payment === "wallet" || order.payment === "online") {
-            const refundAmount = product.price * product.quantity;
-            findUser.wallet += refundAmount;
-          
+            findUser.wallet += cancelAmount;
+
             // Add history entry for the refund
             const newHistory = {
-                amount: refundAmount,
+                amount: cancelAmount,
+                amount: cancelAmount,
                 status: "credit",
                 date: Date.now()
             };
             findUser.history.push(newHistory);
+
+            await findUser.save();
         }
 
-        // Restore product stock
-        const productToUpdate = await Product.findById(productId);
-        console.log(productToUpdate)
-        if (productToUpdate) {
-            productToUpdate.quantity += product.quantity;
-            await productToUpdate.save();
-        } else {
-            console.log(`Product with ID ${productId} not found`);
-        }
-
-        if(order.product.length == 0){
-            await Order.updateOne({ _id: orderId },
-                { status: "Canceled" }
-            ).then((data) => console.log(data))
-    
-        }
-
-        await order.save();
-        console.log("Product removed successfully");
-
-        // Redirect to '/user/orderDetails' with the order ID as a query parameter
-        return res.redirect(`/orderDetails?id=${orderId}`);
+        return res.json({ message: 'Product canceled successfully' });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: 'Internal server error' });
+        console.error('Error canceling product:', error);
+        return res.status(500).json({ message: 'Error canceling product' });
     }
-}
+};
+;
+
 
 // const getReturnProduct = async (req, res) => {
 //     const userId = req.session.user;

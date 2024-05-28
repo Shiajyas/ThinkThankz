@@ -55,20 +55,20 @@
       <div class="card-body">
           <div class="row">
               <div class="col-md-3">
-                  <form method="post" action="/admin/addBrand" enctype="multipart/form-data">
-                      <div class="mb-4">
-                          <label for="product_name" class="form-label">Brand Name</label>
-                          <input type="text" name="name" placeholder="Type here" class="form-control" />
-                      </div>
-                      <label for="product_name" class="form-label">Brand Image</label>
-                      <div class="input-upload">
-                          <img src="assets/imgs/theme/upload.svg" alt="">
-                          <input class="form-control border" name="image" type="file">
-                      </div>
-                      <div class="d-grid">
-                          <button class="btn btn-primary mt-20" type="submit">Add Brand</button>
-                      </div>
-                  </form>
+                <form id="addBrandForm" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label for="brand_name" class="form-label">Brand Name</label>
+                        <input type="text" name="name" placeholder="Type here" class="form-control" id="brand_name" required />
+                    </div>
+                    <label for="brand_image" class="form-label">Brand Image</label>
+                    <div class="input-upload">
+                        <img src="assets/imgs/theme/upload.svg" alt="">
+                        <input class="form-control border" name="image" type="file" id="brand_image" required>
+                    </div>
+                    <div class="d-grid">
+                        <button class="btn btn-primary mt-20" type="submit">Add Brand</button>
+                    </div>
+                </form>
               </div>
               <div class="col-md-7 ml-105">
                   <div class="table-responsive">
@@ -118,6 +118,63 @@
       </div>
   </div>
 </section>
+
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+
+<script>
+    document.getElementById('addBrandForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        // Format the brand name field
+        const formattedName = formatBrandName(formData.get('name'));
+        formData.set('name', formattedName);
+
+        axios.post('/admin/addBrand', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+        .then(function(response) {
+            if (response.data.success) {
+                // Order cancellation successful, display success alert
+                Swal.fire({
+                    title: 'Brand Added',
+                    text: 'The brand has been added successfully.',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.href = '/admin/brands'; // Redirect after confirmation
+                });
+            } else {
+                // Display error alert if the brand already exists
+                Swal.fire({
+                    title: 'Error',
+                    text: response.data.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        })
+        .catch(function(error) {
+            // Handle error
+            console.error('Error:', error);
+            Swal.fire('Error', 'Failed to add the brand. Please try again later.', 'error');
+        });
+    });
+
+    function formatBrandName(name) {
+        name = name.trim();
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    }
+</script>
 
 <%- include("../partials/adminFooter") %>
 

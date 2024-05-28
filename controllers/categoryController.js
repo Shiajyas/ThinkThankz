@@ -14,28 +14,27 @@ const getCategoryInfo = async (req, res) => {
 
 const addCategory = async (req, res) => {
     try {
-        const { name, description } = req.body
-        const categoryExists = await Category.findOne({ name })
-        if (description) {
-            if (!categoryExists) {
-                const newCategory = new Category({
-                    name: name,
-                    description: description
-                })
-                await newCategory.save()
-                console.log("New Category : ", newCategory);
-                res.redirect("/admin/allCategory")
-            } else {
-                res.redirect("/admin/category")
-                console.log("Category Already exists");
-            }
-        } else {
-            console.log("description required");
+        const { name, description } = req.body;
+        const categoryExists = await Category.findOne({ name });
+        
+        if (categoryExists) {
+            res.status(409).json({ message: 'Category already exists' }); // 409 Conflict
+            console.log("Category Already exists");
+            return;
         }
+
+        const newCategory = new Category({
+            name,
+            description
+        });
+        await newCategory.save();
+        console.log("New Category : ", newCategory);
+        res.status(201).json({ message: 'Category created successfully' }); // 201 Created
     } catch (error) {
         console.log(error.message);
+        res.status(500).json({ message: 'An error occurred' }); // 500 Internal Server Error
     }
-}
+};
 
 
 const getAllCategories = async (req, res) => {
@@ -81,28 +80,34 @@ const getEditCategory = async (req, res) => {
     }
 }
 
-
 const editCategory = async (req, res) => {
     try {
-        const id = req.params.id
-        const { categoryName, description } = req.body
-        const findCategory = await Category.find({ _id: id })
+        const id = req.params.id;
+        const { categoryName, description } = req.body;
+
+        // Find the category by ID
+        const findCategory = await Category.findById(id);
         if (findCategory) {
+            // Update the category
             await Category.updateOne(
                 { _id: id },
                 {
                     name: categoryName,
                     description: description
-                })
-            res.redirect("/admin/category")
+                }
+            );
+            res.redirect("/admin/category");
         } else {
             console.log("Category not found");
+            res.status(404).json({ message: 'Category not found' });
         }
 
     } catch (error) {
         console.log(error.message);
+        res.status(500).json({ message: 'An error occurred' });
     }
-}
+};
+
 
 
 const addCategoryOffer = async (req, res)=>{

@@ -161,34 +161,21 @@
                                 <label class="form-check-label" for="Razorpay" data-bs-toggle="collapse"
                                     data-target="#Razorpay" aria-controls="paypal">Razorpay</label>
                             </div>
-
                             <div class="mb-25 ml-150 pt-40">
                                 <h5>Available Coupons</h5>
                             </div>
-
-                            <ul>
-                                <% if (locals.coupons) { %>
+                            
+                            <% if (locals.coupons) { %>
+                                <select id="couponDropdown" class="form-select" style="margin-left: 150px; margin-top: 20px; width: 200px;">
+                                    <option value="">Select a coupon</option>
                                     <% for (let i=0; i < coupons.length; i++) { %>
-                                        <li>
-                                            <div class="coupon-card col-4" style="margin-left: 150px; margin-top: 20px;">
-                                                <div class="coupon-details">
-                                                    <span class="coupon-name">
-                                                        <%= coupons[i].name %>
-                                                    </span><br>
-                                                    <!-- Add other coupon details if needed -->
-                                                </div>
-                                                <button onclick="useCoupon('<%= coupons[i].name %>')" id="useButton_<%= coupons[i].name %>" class="use-button">Use</button>
-                                                <button onclick="cancelCoupon('<%= coupons[i].name %>')" id="cancelButton_<%= coupons[i].name %>" class="cancel-button btn-danger" style="display: none;">Cancel</button>
-                                            </div>
-                                        </li>
-                                        
-                                        <% } %>
-                                            <% }else{ %>
-
-                                                <h3>No coupons available</h3>
-
-                                                <% } %>
-                            </ul>
+                                        <option value="<%= coupons[i].name %>"><%= coupons[i].name %></option>
+                                    <% } %>
+                                </select>
+                            <% } else { %>
+                                <h3>No coupons available</h3>
+                            <% } %>
+                            
 
 
 

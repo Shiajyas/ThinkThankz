@@ -64,18 +64,15 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3">
-                        <form method="post" action="/admin/addCategory">
+                        <form id="categoryForm">
                             <div class="mb-4">
                                 <label for="product_name" class="form-label">Name</label>
-                                <input type="text" name="name" placeholder="Type here" class="form-control"
-                                    id="product_name" required />
+                                <input type="text" name="name" placeholder="Type here" class="form-control" id="product_name" required />
                             </div>
-
-
+                        
                             <div class="mb-4">
                                 <label class="form-label">Description</label>
-                                <textarea placeholder="Type here" name="description" class="form-control"
-                                    required></textarea>
+                                <textarea placeholder="Type here" name="description" class="form-control" required></textarea>
                             </div>
                             <div class="d-grid">
                                 <button class="btn btn-primary" type="submit">Create category</button>
@@ -167,9 +164,49 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <script>
 
+document.getElementById('categoryForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        axios.post('/admin/addCategory', {
+            name: formData.get('name'),
+            description: formData.get('description')
+        })
+        .then(function(response) {
+            // Handle success
+            Swal.fire({
+                title: 'Category Created',
+                text: 'The category has been created successfully.',
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.href = '/admin/allCategory'; // Redirect after confirmation
+            });
+        })
+        .catch(function(error) {
+            // Handle error
+            if (error.response) {
+                if (error.response.status === 409) {
+                    Swal.fire('Error', 'Category already exists.', 'error');
+                } else {
+                    Swal.fire('Error', 'An error occurred. Please try again later.', 'error');
+                }
+            } else {
+                Swal.fire('Error', 'An error occurred. Please try again later.', 'error');
+            }
+        });
+    });
+
+    function formatCategoryName(name) {
+        name = name.trim();
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    }
 
         async function addOffer(categoryId) {
             // alert("here")

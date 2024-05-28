@@ -80,7 +80,7 @@ Router.get("/changeStatus", isAdmin, orderContoller.changeOrderStatus)
 
 // Coupon Management
 Router.get("/coupon", isAdmin, adminController.getCouponPageAdmin)
-Router.post("/createCoupon", isAdmin, adminController.createCoupon)
+Router.post("/createCoupon", isAdmin,upload.none(),  adminController.createCoupon)
 
 
 // Sales Report
@@ -90,6 +90,7 @@ Router.get("/salesWeekly", isAdmin, adminController.salesWeekly)
 Router.get("/salesMonthly", isAdmin, adminController.salesMonthly)
 Router.get("/salesYearly", isAdmin, adminController.salesYearly)
 Router.get("/dateWiseFilter", isAdmin, adminController.dateWiseFilter)
+Router.get("/dateRange", isAdmin, adminController.dateRangeFilter)
 Router.post("/generatePdf", isAdmin, adminController.generatePdf)
 Router.post("/downloadExcel", isAdmin, adminController.downloadExcel)
 

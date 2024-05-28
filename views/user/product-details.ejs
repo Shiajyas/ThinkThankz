@@ -14,6 +14,7 @@
     max-height: none;
 }
 
+
 </style>
     <section class="mt-50 mb-50">
         <div class="container">
@@ -29,7 +30,7 @@
 
                                         <% for (let j=0; j < data.productImage.length; j++) { %>
                                             <figure class="border-radius-10">
-                                                <img src="/uploads/product-images/<%= data.productImage[j] %>"
+                                                <img class="product-image" src="/uploads/product-images/<%= data.productImage[j] %>"
                                                     alt="product image">
                                             </figure>
                                             <% } %>

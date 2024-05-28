@@ -45,9 +45,39 @@
 </div>
 
 <script>
-    document.getElementById('submitButton').addEventListener('click', function (event) {
-        if (!validateForm()) {
-            event.preventDefault();
+    document.getElementById('addressForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        if (validateForm()) {
+            const formData = new FormData(this);
+            const formObject = {};
+            formData.forEach((value, key) => formObject[key] = value);
+
+            fetch('/addAddress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formObject),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Success',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.href = '/profile'; // Redirect after confirmation
+                    });
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Failed to add the address. Please try again later.', 'error');
+            });
         }
     });
 
@@ -59,15 +89,15 @@
             if (input.value.trim() === "") {
                 Swal.fire({
                     title: 'Error',
-                    text: `Please fill all the field.`,
+                    text: 'Please fill all the fields.',
                     icon: 'error'
                 });
                 isValid = false;
             }
         });
-
         return isValid;
     }
 </script>
+
 
 <%- include("../partials/footer") %>

@@ -58,55 +58,47 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3">
-                        <form method="post" action="/admin/createCoupon">
-
+                        <form id="createCouponForm">
                             <body onload="setDefaultStartDate()">
-
                                 <div class="mb-4">
                                     <label for="coupon-name" class="form-label">Coupon Name</label>
-                                    <input type="text" id="coupon-name" name="couponName" placeholder="Type here"
-                                        class="form-control" />
+                                    <input type="text" id="coupon-name" name="couponName" placeholder="Type here" class="form-control" required />
                                     <div id="error-coupon-name" class="error-message"></div>
                                 </div>
-
+                        
                                 <div>
                                     <label for="startingDate" class="form-label">Start Date</label>
-                                    <input type="date" name="startDate" class="form-control" required="true"
-                                        id="startingDate" />
+                                    <input type="date" name="startDate" class="form-control" required id="startingDate" />
                                     <div id="error-start-date" class="error-message"></div>
                                 </div>
-
+                        
                                 <div>
                                     <label for="expiringDate" class="form-label">End Date</label>
-                                    <input type="date" name="endDate" class="form-control" id="expiringDate"
-                                        required="true" />
+                                    <input type="date" name="endDate" class="form-control" required id="expiringDate" />
                                     <div id="error-end-date" class="error-message"></div>
                                 </div>
-
+                        
                                 <div>
                                     <label for="offer-price" class="form-label">Offer Price</label>
-                                    <input type="text" name="offerPrice" placeholder="Type here" class="form-control" />
+                                    <input type="text" name="offerPrice" placeholder="Type here" class="form-control" required />
                                     <div id="error-offer-price" class="error-message"></div>
                                 </div>
-
+                        
                                 <div>
                                     <label for="minimum-price" class="form-label">Minimum Price</label>
-                                    <input type="text" name="minimumPrice" placeholder="Type here"
-                                        class="form-control" />
+                                    <input type="text" name="minimumPrice" placeholder="Type here" class="form-control" required />
                                     <div id="error-minimum-price" class="error-message"></div>
                                 </div>
-
+                        
                                 <div class="d-grid">
-                                    <button class="btn btn-primary mt-20" onclick=" return validateForm(event)"
-                                        type="submit">Add Coupon</button>
+                                    <button class="btn btn-primary mt-20" onclick="return validateForm(event)" type="submit">Add Coupon</button>
                                 </div>
-
+                        
                                 <!-- Container for global error messages -->
                                 <div id="err-msg" class="error-message"></div>
-
                             </body>
                         </form>
-
+                        
                     </div>
                     <div class="col-md-7 ml-105">
                         <div class="table-responsive">
@@ -158,6 +150,12 @@
             </div> <!-- card body .// -->
         </div> <!-- card .// -->
     </section> <!-- content-main end// -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10/dist/sweetalert2.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 
 
     <script>
@@ -217,6 +215,7 @@
             }
 
 
+
             //     const formData = {
             //     couponName: name,
             //     startDate: sDateObj,
@@ -231,7 +230,49 @@
             return true;
         }
 
+        document.getElementById('createCouponForm').addEventListener('submit', function(event) {
+        event.preventDefault(); // Prevent the default form submission
 
+        const form = event.target;
+        const formData = new FormData(form);
+
+        // Format the coupon name field
+        const formattedName = formatCouponName(formData.get('couponName'));
+        formData.set('couponName', formattedName);
+
+        axios.post('/admin/createCoupon', formData)
+            .then(function(response) {
+                if (response.data.success) {
+                    // Coupon creation successful, display success alert
+                    Swal.fire({
+                        title: 'Coupon Created',
+                        text: 'The coupon has been created successfully.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.href = '/admin/coupon'; // Redirect after confirmation
+                    });
+                } else {
+                    // Display error alert if the coupon already exists
+                    Swal.fire({
+                        title: 'Error',
+                        text: response.data.message,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            })
+            .catch(function(error) {
+                // Handle error
+                console.error('Error:', error);
+                Swal.fire('Error', 'Failed to create the coupon. Please try again later.', 'error');
+            });
+    });
+
+    function formatCouponName(name) {
+        name = name.trim();
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    }
 
     </script>
 

@@ -12,21 +12,25 @@ const getBrandPage = async (req, res)=>{
 
 const addBrand = async (req, res)=>{
     try {
-        const brand = req.body.name
-        console.log(brand);
-        const findBrand = await Brand.findOne({brand})
-        if(!findBrand){
-            const image = req.file.filename
-            const newBrand = new Brand({
-                brandName : brand,
-                brandImage : image
-            })
+        const brandName = req.body.name.trim();
+        const formattedBrandName = brandName.charAt(0).toUpperCase() + brandName.slice(1);
 
-            await newBrand.save()
-            res.redirect("/admin/brands")
+        const findBrand = await Brand.findOne({ brandName: formattedBrandName });
+        if (!findBrand) {
+            const image = req.file.filename;
+            const newBrand = new Brand({
+                brandName: formattedBrandName,
+                brandImage: image
+            });
+
+            await newBrand.save();
+            res.status(200).json({ success: true });
+        } else {
+            res.status(400).json({ success: false, message: "Brand already exists" });
         }
     } catch (error) {
         console.log(error.message);
+        res.status(500).json({ success: false, message: "An error occurred" });
     }
 }
 

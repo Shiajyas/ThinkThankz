@@ -62,11 +62,12 @@
                                         <h4 class="text-warning">Returned</h4>
                                         <% } else { %>
                                             <select id="actionDropdown"
-                                                class="form-select form-select-sm d-inline-block mb-lg-0 mb-15 mw-100"
-                                                onchange="handleDropdownChange(this)">
-                                                <option value="status">Status</option>
-                                                <option value="cancel">Cancel</option>
-                                            </select>
+                                            class="form-select form-select-sm d-inline-block mb-lg-0 mb-15 mw-100"
+                                            onchange="handleDropdownChange(this, '<%= orders._id %>')">
+                                        <option value="status">Status</option>
+                                        <option value="cancel">Cancel</option>
+                                    </select>
+                                    
                                             <% } %>
                                                 <% } else { %>
                                                     <h4 class="text-danger">Cancelled</h4>
@@ -178,9 +179,17 @@
                                                     <%= product.name || product.title %>
                                                 </td>
                                                 <td class="text-center align-middle">
-                                                    <% if (!orders.status || orders.status.toLowerCase() !== 'delivered') { %>
-                                                        <a href="/cancelProduct?productId=<%= product._id %>&orderId=<%= orders._id %>">Cancel</a>
+                                                    <% if (!orders.status || (orders.status.toLowerCase() !== 'delivered' && orders.status.toLowerCase() !== 'canceled')) { %>
+                                                        <form id="cancelForm-<%= product._id %>">
+                                                            <input type="hidden" name="productId" value="<%= product._id %>">
+                                                            <input type="hidden" name="orderId" value="<%= orders._id %>">
+                                                            <label for="cancelQuantity-<%= product._id %>">Cancel Quantity:</label>
+                                                            <input type="number" id="cancelQuantity-<%= product._id %>" name="cancelQuantity" min="1" max="<%= product.quantity %>" required>
+                                                            <button type="button" class="btn btn-danger" onclick="confirmCancel('<%= orders._id %>', '<%= product._id %>')">Cancel</button>
+                                                        </form>
                                                     <% } %>
+                                                    
+                                                    
                                                 </td>
                                                 <td class="text-center align-middle">
                                                     ₹<%= product.regularPrice.toLocaleString() %>
@@ -364,23 +373,106 @@
         }
     </style>
 
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
 
     <script>
-        function handleDropdownChange(selectElement) {
-
-            console.log(orderId.value, "hiiiiiiiiiiiiiiiiiiiii");
-            var selectedValue = selectElement.value;
-            console.log(selectedValue);
-            if (selectedValue == "cancel") {
-               
-                window.location.href = `/cancelOrder?orderId=${orderId.value}`;
+ 
+ function handleDropdownChange(selectElement, orderId) {
+    var selectedValue = selectElement.value;
+    console.log(selectedValue, orderId);
+    
+    if (selectedValue == "cancel" && orderId) {
+        // Display a confirmation dialog before submitting the cancellation request
+        Swal.fire({
+            title: 'Confirm cancellation',
+            text: 'Are you sure you want to cancel this order?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, cancel it',
+            cancelButtonText: 'No, keep it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // User confirmed, send AJAX request to cancel the order
+                fetch(`/cancelOrder?orderId=${orderId}`)
+                    .then(response => {
+                        if (response.ok) {
+                            // Order cancellation successful, display success alert
+                            Swal.fire('Order Canceled', 'Your order has been canceled successfully.', 'success')
+                                .then(() => {
+                                    // Reload the page or redirect as needed
+                                    window.location.reload();
+                                });
+                        } else {
+                            // Order cancellation failed, display error alert
+                            Swal.fire('Error', 'Failed to cancel the order. Please try again later.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        // Error occurred during the fetch operation, display error alert
+                        console.error('Error:', error);
+                        Swal.fire('Error', 'Failed to cancel the order. Please try again later.', 'error');
+                    });
             }
+        });
+    }
+}
 
 
+        document.addEventListener('DOMContentLoaded', () => {
+    const cancelButtons = document.querySelectorAll('.cancelButton'); // Adjust the selector based on your HTML
+    cancelButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const orderId = button.dataset.orderId;
+            const productId = button.dataset.productId;
+            confirmCancel(orderId, productId);
+        });
+    });
+});
+
+function confirmCancel(orderId, productId) {
+    const form = document.getElementById(`cancelForm-${productId}`);
+    const quantityInput = form.querySelector('input[name="cancelQuantity"]');
+    const quantity = quantityInput.value;
+
+    if (quantity < 1 || quantity > quantityInput.max) {
+        Swal.fire('Invalid quantity', 'Please enter a valid quantity to cancel.', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Are you sure?',
+        text: `You are about to cancel ${quantity} units.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, cancel it!',
+        cancelButtonText: 'No, keep it'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formData = new FormData(form);
+
+            console.log('Form data before appending additional fields:', Object.fromEntries(formData.entries()));
+
+            formData.append('orderId', orderId);
+            formData.append('productId', productId);
+            formData.append('cancelQuantity', quantity);
+
+            console.log('Complete form data being sent:', Object.fromEntries(formData.entries()));
+
+            axios.post('/cancelProduct', formData)
+                .then(response => {
+                    Swal.fire('Success', response.data.message, 'success')
+                        .then(() => {
+                            window.location.reload();
+                        });
+                })
+                .catch(error => {
+                    console.error('There was a problem with the axios operation:', error);
+                    Swal.fire('Error', 'Failed to cancel the product. Please try again later.', 'error');
+                });
         }
-
-
+    });
+}
 
 
         function performAction() {
@@ -388,7 +480,6 @@
             // You can add more logic here if needed
         }
     </script>
-
 
 
 

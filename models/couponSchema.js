@@ -4,7 +4,10 @@ const couponSchema = Mongoose.Schema({
     name : {
         type : String,
         required : true,
-        unique : true
+        unique : true,
+        trim: true,
+    
+        set: (value) => value.charAt(0).toUpperCase() + value.slice(1)
     },
     createdOn : {
         type : Date,
