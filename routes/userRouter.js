@@ -65,6 +65,7 @@ Router.get("/deleteItem", isLogged, cartController.deleteProduct)
 //Orders
 Router.get("/checkout",isLogged, orderController.getCheckoutPage)
 Router.post("/orderPlaced", isLogged, orderController.orderPlaced)
+Router.post("/verifyPayment", isLogged, orderController.verifyPayment)
 Router.get("/orderDetails", isLogged, orderController.getOrderDetailsPage)
 Router.get("/cancelOrder", isLogged, orderController.cancelOrder)
 Router.post("/cancelProduct", isLogged,upload.none(), orderController.cancelProduct)
@@ -72,9 +73,12 @@ Router.get("/return", isLogged, orderController.getReturnOrder)
 // Router.get("/returnProduct", isLogged, orderController.getReturnProduct)
 Router.post("/raiseReturnRequest", isLogged, orderController.returnProduct)
 Router.get("/checkoutCart", isLogged, orderController.getCartCheckoutPage)
-Router.post("/verifyPayment", isLogged, orderController.verify)
+
 Router.get("/invoice", orderController.getInvoice)
 Router.post("/applyCoupon", isLogged, userController.applyCoupon)
+Router.post("/logPaymentFailure", isLogged, orderController.logPaymentFailure)
+Router.post("/savePendingOrder", isLogged, orderController.savePendingOrder)
+Router.post("/retryPayment", isLogged, orderController.retryPayment)
 
 // Wallet
 Router.post("/addMoney", isLogged, walletController.addMoneyToWallet)

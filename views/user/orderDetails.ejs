@@ -40,40 +40,42 @@
                 <header class="card-header">
                     <div class="row align-items-center">
                         <div class="col-lg-4 col-md-4 ms-auto text-md-end">
-                            <% if (orders.status !=="Canceled" ) { %>
-                                <% if (orders.status==="Delivered" ) { %>
+                            <% if (orders.status !== "Canceled") { %>
+                                <% if (orders.status === "Delivered") { %>
                                     <div class="row">
-                                        <div class="col-2" style="margin-right: 40px; ">
+                                        <div class="col-2" style="margin-right: 40px;">
                                             <a class="btn custom-btn" id="print-button">Invoice</a>
                                         </div>
                                         <div class="col-2">
-                                            <a class="btn custom-btn"
-                                                href="http://localhost:3000/return?id=<%= orders._id%>">Return</a>
+                                            <a class="btn custom-btn" href="http://localhost:3000/return?id=<%= orders._id %>">Return</a>
                                         </div>
                                         <div class="col-5" style="margin-top: 17px; margin-left: 50px;">
-
-
-
                                             <h6 class="text-success">Delivered</h6>
-
                                         </div>
                                     </div>
-                                    <% }else if(orders.status==="Returned" ){ %>
-                                        <h4 class="text-warning">Returned</h4>
-                                        <% } else { %>
-                                            <select id="actionDropdown"
-                                            class="form-select form-select-sm d-inline-block mb-lg-0 mb-15 mw-100"
-                                            onchange="handleDropdownChange(this, '<%= orders._id %>')">
+                                <% } else if (orders.status === "Returned") { %>
+                                    <h4 class="text-warning">Returned</h4>
+                                <% } else if (orders.status === "Pending") { %>
+                                    <div class="row">
+                                      
+                                        <div class="col-5" style="margin-top: 17px; margin-left: 50px;">
+                                            <h6 class="text-warning">Pending</h6>
+                                        </div>
+                                        <div class="col-2" style="margin-right: 40px;">
+                                            <a class="btn custom-btn" href="http://localhost:3000/retryPayment?id=<%= orders._id %>">Retry Payment</a>
+                                        </div>
+                                    </div>
+                                <% } else { %>
+                                    <select id="actionDropdown" class="form-select form-select-sm d-inline-block mb-lg-0 mb-15 mw-100" onchange="handleDropdownChange(this, '<%= orders._id %>')">
                                         <option value="status">Status</option>
                                         <option value="cancel">Cancel</option>
                                     </select>
-                                    
-                                            <% } %>
-                                                <% } else { %>
-                                                    <h4 class="text-danger">Cancelled</h4>
-                                                    <% } %>
+                                <% } %>
+                            <% } else { %>
+                                <h4 class="text-danger">Cancelled</h4>
+                            <% } %>
                         </div>
-
+                        
 
                     </div>
                 </header>
@@ -179,7 +181,7 @@
                                                     <%= product.name || product.title %>
                                                 </td>
                                                 <td class="text-center align-middle">
-                                                    <% if (!orders.status || (orders.status.toLowerCase() !== 'delivered' && orders.status.toLowerCase() !== 'canceled')) { %>
+                                                    <% if (!orders.status || (orders.status.toLowerCase() !== 'delivered' && orders.status.toLowerCase() !== 'canceled'  && orders.status.toLowerCase() !== 'pending' )) { %>
                                                         <form id="cancelForm-<%= product._id %>">
                                                             <input type="hidden" name="productId" value="<%= product._id %>">
                                                             <input type="hidden" name="orderId" value="<%= orders._id %>">

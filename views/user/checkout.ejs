@@ -362,142 +362,191 @@
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
-        async function placeOrder(userId, prodId, isSingle) {
-            // alert(prodId)
-            let address = $("input[name='selectedAddress']:checked").val();
-            let payment = $("input[name='payment_option']:checked").val();
 
-            const sum = document.getElementById("totalValue").textContent;
-            const numericValue = parseInt(sum.replace(/[^\d.]/g, ''));
+async function placeOrder(userId, prodId, isSingle) {
+    let address = $("input[name='selectedAddress']:checked").val();
+    let payment = $("input[name='payment_option']:checked").val();
 
-            if (!payment) {
-                Swal.fire({
-                    title: 'NO PAYMENT FOUND!',
-                    text: 'Please select your Payment.',
-                    icon: 'error',
-                    timer: 3000,
-                });
-            } else if (!address) {
-                Swal.fire({
-                    title: 'NO ADDRESS FOUND!',
-                    text: 'Please select your address.',
-                    icon: 'error',
-                    timer: 3000,
-                });
-            } else {
-                $.ajax({
-                    url: '/orderPlaced',
-                    method: 'POST',
-                    data: {
-                        totalPrice: numericValue,
-                        addressId: address,
-                        payment: payment,
-                        productId: prodId,
-                        isSingle
-                    },
-                    success: function (response) {
-                        if (response.method === "cod") {
-                            Swal.fire({
-                                title: "Order success",
-                                text: "Order placed successfully",
-                                icon: "success",
-                                showConfirmButton: true,
-                                timer: 2000,
-                            })
-                            location.href = '/profile';
-                        } else if (response.method === "online") {
+    const sum = document.getElementById("totalValue").textContent;
+    const numericValue = parseInt(sum.replace(/[^\d.]/g, ''));
 
-                            let orderAmount = Math.round(numericValue * 100)
-                            console.log(response, "res");   
-                            var options = {
-                                "key": "rzp_test_297s5pqDLLHUia",
-                                "amount": orderAmount,
-                                "currency": "INR",
-                                "name": "Think Thankz",
-                                "description": "Test Transaction",
-                                "image": "https://example.com/your_logo",
-                                "order_id": response.razorpayOrder.id,
-                                "handler": function (status) {
-                                    verifyPayment(response.razorpayOrder, status, response.razorpayOrder.id);
-                                },
-                                "prefill": {
-                                    "name": "Customer Name",
-                                    "email": "customer@example.com",
-                                    "contact": "9000090000"
-                                },
-
-                                "theme": {
-                                    "color": "#3399cc"
-                                }
-                            }
-                            var rzp1 = new Razorpay(options);
-                            rzp1.open();
-                        } else if (response.method === "wallet") {
-
-                            if (response.payment===true) {
-                                Swal.fire({
-                                    title: "Order success",
-                                    text: "Order placed successfully",
-                                    icon: "success",
-                                    showConfirmButton: true,
-                                    timer: 2000,
-                                });
-                                location.href = '/profile';
-                            } else {
-                                // Handle the case when the response status is not successful
-                                Swal.fire({
-                                    title: "Order failed",
-                                    text: "Wallet amount is not enough",
-                                    icon: "error",
-                                    showConfirmButton: true,
-                                });
+    if (!payment) {
+        Swal.fire({
+            title: 'NO PAYMENT FOUND!',
+            text: 'Please select your Payment.',
+            icon: 'error',
+            timer: 3000,
+        });
+    } else if (!address) {
+        Swal.fire({
+            title: 'NO ADDRESS FOUND!',
+            text: 'Please select your address.',
+            icon: 'error',
+            timer: 3000,
+        });
+    } else {
+        $.ajax({
+            url: '/orderPlaced',
+            method: 'POST',
+            data: {
+                totalPrice: numericValue,
+                addressId: address,
+                payment: payment,
+                productId: prodId,
+                isSingle
+            },
+            success: function (response) {
+                if (response.method === "cod") {
+                    Swal.fire({
+                        title: "Order success",
+                        text: "Order placed successfully",
+                        icon: "success",
+                        showConfirmButton: true,
+                        timer: 2000,
+                    });
+                    location.href = '/profile';
+                } else if (response.method === "online") {
+                    let orderAmount = Math.round(numericValue * 100);
+                    console.log(response, "res");   
+                    var options = {
+                        "key": "rzp_test_297s5pqDLLHUia",
+                        "amount": orderAmount,
+                        "currency": "INR",
+                        "name": "Think Thankz",
+                        "description": "Test Transaction",
+                        "image": "https://example.com/your_logo",
+                        "order_id": response.razorpayOrder.id,
+                        "handler": function (status) {
+                            verifyPayment(response.razorpayOrder, status, response.razorpayOrder.id);
+                        },
+                        "prefill": {
+                            "name": "Customer Name",
+                            "email": "customer@example.com",
+                            "contact": "9000090000"
+                        },
+                        "theme": {
+                            "color": "#3399cc"
+                        },
+                        "modal": {
+                            "ondismiss": function() {
+                                console.log("Checkout form closed");
                             }
                         }
-                    }
+                    };
+                    var rzp1 = new Razorpay(options);
 
+                    rzp1.on('payment.failed', function (response) {
+                        handlePaymentFailure(response, userId, prodId, numericValue, address);
+                    });
 
-
-                })
-            }
-        }
-
-        function verifyPayment(order, payment, id) {
-            console.log(order)
-            console.log(payment);
-            console.log(id);
-            $.ajax({
-                url: '/verifyPayment',
-                method: 'post',
-                data: {
-                    order,
-                    payment
-                }, success: (response) => {
-                    if (response.status) {
+                    rzp1.open();
+                } else if (response.method === "wallet") {
+                    if (response.payment === true) {
                         Swal.fire({
                             title: "Order success",
-                            text: "order placed successfully",
+                            text: "Order placed successfully",
                             icon: "success",
-                            showCancelButton: true,
-                            confirmButtonText: "view orders",
-                            cancelButtonText: "continue shopping",
-                            reverseButtons: true
-                        }).then(function (result) {
-                            if (result.value) {
-                                location.href = '/profile';
-                                // result.dismiss can be "cancel", "overlay",
-                                // "close", and "timer"
-                            } else if (result.dismiss === "cancel") {
-                                location.href = '/'
-                            }
+                            showConfirmButton: true,
+                            timer: 2000,
+                        });
+                        location.href = '/profile';
+                    } else {
+                        // Handle the case when the response status is not successful
+                        Swal.fire({
+                            title: "Order failed",
+                            text: "Wallet amount is not enough",
+                            icon: "error",
+                            showConfirmButton: true,
                         });
                     }
-
                 }
-            })
+            }
+        });
+    }
+}
+
+function handlePaymentFailure(response, userId, prodId, numericValue, address) {
+    console.error('Payment failed:', response);
+
+    // Log payment failure details to the server
+    $.ajax({
+        url: '/logPaymentFailure',
+        method: 'post',
+        data: {
+            code: response.error.code,
+            description: response.error.description,
+            source: response.error.source,
+            step: response.error.step,
+            reason: response.error.reason,
+            order_id: response.error.metadata.order_id,
+            payment_id: response.error.metadata.payment_id,
+            user_id: userId,
+            product_id: prodId,
+            total_price: numericValue,
+            address_id: address
+        },
+        success: (res) => {
+            Swal.fire({
+                title: "Payment failed",
+                text: "Unfortunately, your payment could not be processed. Please try again.",
+                icon: "error",
+                showConfirmButton: true,
+            });
         }
+    });
 
+    // Save the order as pending
+    $.ajax({
+        url: '/savePendingOrder',
+        method: 'post',
+        data: {
+            order_id: response.error.metadata.order_id,
+            user_id: userId,
+            product_id: prodId,
+            total_price: numericValue,
+            address_id: address
+        },
+        success: (res) => {
+            console.log('Order saved as pending:', res);
+        }
+    });
+}
 
+function verifyPayment(order, payment, id) {
+    console.log(order);
+    console.log(payment);
+    console.log(id);
+    $.ajax({
+        url: '/verifyPayment',
+        method: 'post',
+        data: {
+            order,
+            payment
+        }, 
+        success: (response) => {
+            if (response.status) {
+                Swal.fire({
+                    title: "Order success",
+                    text: "Order placed successfully",
+                    icon: "success",
+                    showCancelButton: true,
+                    confirmButtonText: "View orders",
+                    cancelButtonText: "Continue shopping",
+                    reverseButtons: true
+                }).then(function (result) {
+                    if (result.value) {
+                        location.href = '/profile';
+                    } else if (result.dismiss === "cancel") {
+                        location.href = '/';
+                    }
+                });
+            }
+        }
+    });
+}
 
+ 
+     
         function showCouponDetails(couponName) {
             Swal.fire({
                 title: 'Coupon Details',
