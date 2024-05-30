@@ -27,6 +27,10 @@ const orderSchema = new mongoose.Schema({
         default: 'Pending',
         required: true
     },
+    paymentId:{
+        type: String,
+        unique: true
+    },
     createdOn: {
         type: Date,
         default: Date.now,
@@ -44,7 +48,8 @@ const orderSchema = new mongoose.Schema({
     couponDiscount: {
         type: Number,
         default: 0
-    }
+    },
+    razorpayOrderId: { type: String },
 });
 
 const Order = mongoose.model('Order', orderSchema);

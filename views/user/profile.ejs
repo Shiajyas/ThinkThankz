@@ -114,6 +114,16 @@
                                         <div class="card">
                                             <div class="card-header">
                                                 <h5 class="mb-0">Your Orders</h5>
+                                                <!-- Dropdown to filter by status -->
+                                                <select id="statusFilter" class="form-select" aria-label="Filter by status">
+                                                    <option value="all">All</option>
+                                                    <option value="Pending">Pending</option>
+                                                    <option value="Delivered">Delivered</option>
+                                                    <option value="Confirmed">Confirmed</option>
+                                                    <option value="Returned">Returned</option>
+                                                    <option value="Canceled">Canceled</option>
+                                                    <option value="Shipped">Shipped</option>
+                                                </select>
                                             </div>
                                             <div class="card-body">
                                                 <div class="table-responsive">
@@ -126,42 +136,41 @@
                                                                 <th>Actions</th>
                                                             </tr>
                                                         </thead>
-                                                        <tbody>
-
-                                                            <% if (order) { %>
-
-                                                                <% for (let i=0; i < order.length; i++) { %>
-                                                                    <tr>
+                                                        <tbody id="orderTable">
+                                                            <% if (order && order.length > 0) { %>
+                                                                <% for (let i = 0; i < order.length; i++) { %>
+                                                                    <tr class="order-row" data-status="<%= order[i].status %>">
+                                                                        <td><%= order[i]._id %></td>
                                                                         <td>
-                                                                            <%= order[i]._id %>
-                                                                        </td>
-
-                                                                        <td>
-                                                                            <%= order[i].status %>
-                                                                        </td>
-
-
-                                                                        <td>
-                                                                            <%= order[i].totalPrice %>
-                                                                        </td>
-
-
-                                                                        <td><a href="/orderDetails?id=<%= order[i]._id %>"
-                                                                                class="btn-small d-block">View</a></td>
-                                                                    </tr>
-                                                                    <% } %>
-
-
-                                                                        <% }else{ %>
-
-                                                                            <td>No Orders found</td>
-
+                                                                            <% if (order[i].status === "Pending") { %>
+                                                                                Pending
+                                                                            <% } else if (order[i].status === "Delivered") { %>
+                                                                                Delivered
+                                                                            <% } else if (order[i].status === "Confirmed") { %>
+                                                                                Confirmed
+                                                                            <% } else if (order[i].status === "Returned") { %>
+                                                                                Returned
+                                                                            <% } else if (order[i].status === "Canceled") { %>
+                                                                                Canceled
+                                                                            <% } else if (order[i].status === "Shipped") { %>
+                                                                                Shipped
                                                                             <% } %>
-
+                                                                        </td>
+                                                                        <td><%= order[i].totalPrice %></td>
+                                                                        <td><a href="/orderDetails?id=<%= order[i]._id %>" class="btn-small d-block">View</a></td>
+                                                                    </tr>
+                                                                <% } %>
+                                                            <% } else { %>
+                                                                <tr>
+                                                                    <td colspan="4">No Orders found</td>
+                                                                </tr>
+                                                            <% } %>
                                                         </tbody>
                                                     </table>
                                                 </div>
                                             </div>
+                                          
+                                            
                                         </div>
                                     </div>
                                     <div class="tab-pane fade" id="track-orders" role="tabpanel"
@@ -657,5 +666,25 @@
         });
     });
 </script>
+
+  
+<script>
+                                                document.getElementById('statusFilter').addEventListener('change', function() {
+                                                    var selectedStatus = this.value;
+                                                    var rows = document.querySelectorAll('#orderTable .order-row');
+                                                    
+                                                    rows.forEach(function(row) {
+                                                        if (selectedStatus === 'all') {
+                                                            row.style.display = '';
+                                                        } else {
+                                                            if (row.getAttribute('data-status') === selectedStatus) {
+                                                                row.style.display = '';
+                                                            } else {
+                                                                row.style.display = 'none';
+                                                            }
+                                                        }
+                                                    });
+                                                });
+                                            </script>
 
         <%- include("../partials/footer") %>

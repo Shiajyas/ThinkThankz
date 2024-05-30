@@ -62,7 +62,8 @@
                                             <h6 class="text-warning">Pending</h6>
                                         </div>
                                         <div class="col-2" style="margin-right: 40px;">
-                                            <a class="btn custom-btn" href="http://localhost:3000/retryPayment?id=<%= orders._id %>">Retry Payment</a>
+                                            
+                                            <button class="btn custom-btn" id="retryPaymentBtn">Retry Payment</button>
                                         </div>
                                     </div>
                                 <% } else { %>
@@ -482,6 +483,36 @@ function confirmCancel(orderId, productId) {
             // You can add more logic here if needed
         }
     </script>
+
+<script>
+    document.getElementById('retryPaymentBtn').addEventListener('click', async () => {
+        const orderId = '<%= orders._id %>';
+
+        try {
+            const response = await axios.post('/retryPayment', { orderId });
+
+            if (response.data.status === 'Payment successful') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: 'Payment was successful!',
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Payment Failed',
+                    text: response.data.error || 'An error occurred during payment.',
+                });
+            }
+        } catch (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Payment Failed',
+                text: err.message,
+            });
+        }
+    });
+</script>
 
 
 

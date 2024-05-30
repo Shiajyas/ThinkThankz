@@ -401,23 +401,23 @@ async function placeOrder(userId, prodId, isSingle) {
                         title: "Order success",
                         text: "Order placed successfully",
                         icon: "success",
-                        showConfirmButton: true,
+                        showConfirmButton: false,
                         timer: 2000,
+                    }).then(() => {
+                        location.href ='/profile';
                     });
-                    location.href = '/profile';
                 } else if (response.method === "online") {
                     let orderAmount = Math.round(numericValue * 100);
-                    console.log(response, "res");   
                     var options = {
                         "key": "rzp_test_297s5pqDLLHUia",
                         "amount": orderAmount,
                         "currency": "INR",
-                        "name": "Think Thankz",
+                        "name": "LapLux",
                         "description": "Test Transaction",
                         "image": "https://example.com/your_logo",
                         "order_id": response.razorpayOrder.id,
                         "handler": function (status) {
-                            verifyPayment(response.razorpayOrder, status, response.razorpayOrder.id);
+                            verifyPayment(response.razorpayOrder.id, status, response.razorpayOrder.id);
                         },
                         "prefill": {
                             "name": "Customer Name",
@@ -426,19 +426,12 @@ async function placeOrder(userId, prodId, isSingle) {
                         },
                         "theme": {
                             "color": "#3399cc"
-                        },
-                        "modal": {
-                            "ondismiss": function() {
-                                console.log("Checkout form closed");
-                            }
                         }
                     };
                     var rzp1 = new Razorpay(options);
-
                     rzp1.on('payment.failed', function (response) {
                         handlePaymentFailure(response, userId, prodId, numericValue, address);
                     });
-
                     rzp1.open();
                 } else if (response.method === "wallet") {
                     if (response.payment === true) {
@@ -446,12 +439,12 @@ async function placeOrder(userId, prodId, isSingle) {
                             title: "Order success",
                             text: "Order placed successfully",
                             icon: "success",
-                            showConfirmButton: true,
+                            showConfirmButton: false,
                             timer: 2000,
+                        }).then(() => {
+                            location.href ='/profile';
                         });
-                        location.href = '/profile';
                     } else {
-                        // Handle the case when the response status is not successful
                         Swal.fire({
                             title: "Order failed",
                             text: "Wallet amount is not enough",
@@ -460,6 +453,15 @@ async function placeOrder(userId, prodId, isSingle) {
                         });
                     }
                 }
+            },
+            error: function (xhr, status, error) {
+                console.error("Order placement failed:", status, error);
+                Swal.fire({
+                    title: "Order failed",
+                    text: "Something went wrong. Please try again.",
+                    icon: "error",
+                    showConfirmButton: true,
+                });
             }
         });
     }
@@ -471,7 +473,7 @@ function handlePaymentFailure(response, userId, prodId, numericValue, address) {
     // Log payment failure details to the server
     $.ajax({
         url: '/logPaymentFailure',
-        method: 'post',
+        method: 'POST',
         data: {
             code: response.error.code,
             description: response.error.description,
@@ -498,9 +500,10 @@ function handlePaymentFailure(response, userId, prodId, numericValue, address) {
     // Save the order as pending
     $.ajax({
         url: '/savePendingOrder',
-        method: 'post',
+        method: 'POST',
         data: {
             order_id: response.error.metadata.order_id,
+            payment_id: response.error.metadata.payment_id,
             user_id: userId,
             product_id: prodId,
             total_price: numericValue,
@@ -512,17 +515,15 @@ function handlePaymentFailure(response, userId, prodId, numericValue, address) {
     });
 }
 
-function verifyPayment(order, payment, id) {
-    console.log(order);
-    console.log(payment);
-    console.log(id);
+
+function verifyPayment(orderId, payment, id) {
     $.ajax({
         url: '/verifyPayment',
         method: 'post',
         data: {
-            order,
+            orderId,
             payment
-        }, 
+        },
         success: (response) => {
             if (response.status) {
                 Swal.fire({
@@ -537,16 +538,31 @@ function verifyPayment(order, payment, id) {
                     if (result.value) {
                         location.href = '/profile';
                     } else if (result.dismiss === "cancel") {
-                        location.href = '/';
+                        location.href = '/'
                     }
                 });
+            } else {
+                Swal.fire({
+                    title: "Payment verification failed",
+                    text: "Your payment could not be verified. Please try again.",
+                    icon: "error",
+                    showConfirmButton: true,
+                });
             }
+        },
+        error: function (xhr, status, error) {
+            console.error("Payment verification failed:", status, error);
+            Swal.fire({
+                title: "Payment verification failed",
+                text: "Something went wrong. Please try again.",
+                icon: "error",
+                showConfirmButton: true,
+            });
         }
     });
 }
 
- 
-     
+
         function showCouponDetails(couponName) {
             Swal.fire({
                 title: 'Coupon Details',

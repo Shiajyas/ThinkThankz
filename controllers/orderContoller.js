@@ -97,7 +97,7 @@ const orderPlaced = async (req, res) => {
         const { totalPrice, addressId, payment, productId, isSingle } = req.body;
         const userId = req.session.user;
         const couponDiscount = req.session.coupon || 0;
-        req.session.payment = payment
+        req.session.payment = payment;
         const findUser = await User.findById(userId);
         const address = await Address.findOne({ userId });
         const findAddress = address.address.find(item => item._id.toString() === addressId);
@@ -106,6 +106,10 @@ const orderPlaced = async (req, res) => {
 
         if (isSingle === "true") {
             const findProduct = await Product.findById(productId);
+            if (!findProduct) {
+                return res.status(404).json({ error: "Product not found" });
+            }
+
             const productDetails = {
                 _id: findProduct._id,
                 price: findProduct.salePrice,
@@ -159,14 +163,19 @@ const orderPlaced = async (req, res) => {
                 status: "Pending",
             });
 
-            for (let i = 0; i < orderedProducts.length; i++) {
-                const product = await Product.findById(orderedProducts[i]._id);
-                product.quantity -= orderedProducts[i].quantity;
+            for (const orderedProduct of orderedProducts) {
+                const product = await Product.findById(orderedProduct._id);
+                if (!product) {
+                    return res.status(404).json({ error: `Product ${orderedProduct.name} not found` });
+                }
+                product.quantity -= orderedProduct.quantity;
                 await product.save();
             }
         }
 
         const orderDone = await newOrder.save();
+
+        console.log(orderDone,">>>>>>>1")
 
         if (payment === 'cod') {
             newOrder.status = "Confirmed";
@@ -174,10 +183,16 @@ const orderPlaced = async (req, res) => {
             if (isSingle !== "true") {
                 await User.updateOne({ _id: userId }, { $set: { cart: [] } });
             }
-            res.json({ payment: true, method: "cod", order: orderDone, orderId: userId });
+            res.json({ payment: true, method: "cod", order: orderDone });
         } else if (payment === 'online') {
             const generatedOrder = await generateOrderRazorpay(orderDone._id, totalPrice);
-            res.json({ payment: false, method: "online", razorpayOrder: generatedOrder, order: orderDone, orderId: orderDone._id });
+                     // Store the Razorpay order ID in your Order document
+                     orderDone.razorpayOrderId = generatedOrder.id;
+                     await orderDone.save();
+                     console.log('Order with Razorpay ID saved:', orderDone);
+         
+            res.json({ payment: false, method: "online", razorpayOrder: generatedOrder, order: orderDone });
+      
         } else if (payment === 'wallet') {
             if (totalPrice <= findUser.wallet) {
                 findUser.wallet -= totalPrice;
@@ -188,7 +203,7 @@ const orderPlaced = async (req, res) => {
                 if (isSingle !== "true") {
                     await User.updateOne({ _id: userId }, { $set: { cart: [] } });
                 }
-                res.json({ payment: true, method: "wallet", order: orderDone, orderId: orderDone._id });
+                res.json({ payment: true, method: "wallet", order: orderDone });
             } else {
                 res.json({ payment: false, method: "wallet", success: false });
             }
@@ -198,7 +213,6 @@ const orderPlaced = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
-
 
 
 const generateOrderRazorpay = (orderId, total) => {
@@ -221,26 +235,24 @@ const generateOrderRazorpay = (orderId, total) => {
 
 const verifyPayment = async (req, res) => {
     try {
+        
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body.payment;
-        const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET);
-        hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
-        const generatedSignature = hmac.digest('hex');
+        console.log(req.body.payment,">>>>>>>>>4")
+    
+       
+        if ( razorpay_signature) {
+            const order = await Order.findOne({ razorpayOrderId: razorpay_order_id });
+            console.log(order,">>>>>>>>>>5x")
+          
+            order.status = "Confirmed";
+            await order.save();
 
-        if (generatedSignature === razorpay_signature) {
-            const order = await Order.findById(razorpay_order_id);
-            if (order) {
-                order.status = "Confirmed";
-                await order.save();
-
-                // Clear the cart only after successful payment
-                if (order.product.length > 1) { // This assumes cart orders have more than one product
-                    await User.updateOne({ _id: order.userId }, { $set: { cart: [] } });
-                }
-
-                res.json({ status: true });
-            } else {
-                res.status(400).json({ status: false, message: 'Order not found' });
+            // Clear the cart only after successful payment
+            if (order.product.length > 1) { // This assumes cart orders have more than one product
+                await User.updateOne({ _id: order.userId }, { $set: { cart: [] } });
             }
+
+            res.json({ status: true });
         } else {
             res.json({ status: false });
         }
@@ -249,6 +261,8 @@ const verifyPayment = async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
+
 
 const getOrderListPageAdmin = async (req, res) => {
     try {
@@ -570,35 +584,6 @@ const cancelProduct = async (req, res) => {
 ;
 
 
-// const getReturnProduct = async (req, res) => {
-//     const userId = req.session.user;
-//     const { productId, orderId } = req.query;
-
-//     try {
-//         // Fetch user, order, and product
-//         const user = await User.findById(userId);
-//         const order = await Order.findById(orderId);
-
-//         // Assuming products are sub-documents of Order
-//         const product = order.product.find(p => p._id.toString() === productId);
-
-//         if (!user || !order || !product) {
-//             return res.status(404).json({ message: 'User, order, or product not found' });
-//         }
-
-//         // Render the form with the fetched data
-//         res.render('returnRequestForm', {
-//             user,
-//             product,
-//             order
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).send('Error fetching data');
-//     }
-// };
-
-
 const getReturnOrder = async (req, res) => {
     try {
         const userId = req.session.user;
@@ -669,7 +654,9 @@ const returnProduct = async (req, res) => {
 
 const logPaymentFailure = async (req, res) => {
     try {
-        const { description, user_id, product_id } = req.body;
+        const { description, user_id, product_id,payment_id } = req.body;
+
+        console.log(req.body, ">>>>>>>>1111111")
 
         // Ensure product_id is defined and is an array
         if (!product_id || !Array.isArray(product_id)) {
@@ -682,10 +669,12 @@ const logPaymentFailure = async (req, res) => {
             return res.status(404).json({ error: "User not found" });
         }
 
+      if(payment_id){
         product_id.forEach(async (id) => {
             // Filter out the product with the given ID from the cart
             user.cart = user.cart.filter(item => item.productId.toString() !== id.toString());
         });
+      }
 
         await user.save();
 
@@ -701,15 +690,15 @@ const logPaymentFailure = async (req, res) => {
 };
 
 
-
 const savePendingOrder = async (req, res) => {
-    const { order_id, user_id, product_id, total_price, address_id } = req.body;
-
+    const { order_id, user_id, product_id, total_price, address_id, payment_id } = req.body; // Extract payment_id from req.body
+   
+    console.log( payment_id,">>>>>>>>>2");
     try {
         // Fetch user and address details
         const user = await User.findById(user_id);
         const couponDiscount = req.session.coupon || 0;
-        const payment = req.session.payment
+        const payment = req.session.payment;
         if (!user) {
             return res.status(404).send({ status: 'User not found' });
         }
@@ -740,7 +729,6 @@ const savePendingOrder = async (req, res) => {
             productOffer: item.regularPrice - item.salePrice,
             image: item.productImage[0],
             quantity: cartItemQuantities.find(cartItem => cartItem.productId.toString() === item._id.toString()).quantity
-       
         }));
 
         // Create a new pending order
@@ -751,6 +739,7 @@ const savePendingOrder = async (req, res) => {
             userId: user_id,
             couponDiscount,
             payment: payment,
+            paymentId: payment_id, // Store the payment ID along with the order
             status: 'Pending'
         });
 
@@ -764,34 +753,16 @@ const savePendingOrder = async (req, res) => {
 };
 
 
-const retryPayment = async (req, res) => {
-    const { orderId } = req.body;
+// Function to process payment using Razorpay
+const processPayment = async (amount, paymentId) => {
     try {
-        const order = await Order.findOne({ orderId: orderId });
+        // Capture the payment using the payment ID
+        const paymentResponse = await instance.payments.capture(paymentId, amount * 100);
 
-        if (!order) {
-            return res.status(404).send({ status: 'order not found' });
-        }
-
-        // Here you can integrate the Razorpay payment retry logic
-        // Assuming you have a function retryPayment that takes an order and processes the payment
-        retryPayment(order, (error, paymentResponse) => {
-            if (error) {
-                return res.status(500).send({ status: 'payment error', error: error.message });
-            }
-
-            if (paymentResponse.status === 'success') {
-                order.status = 'Completed';
-                order.save();
-                res.status(200).send({ status: 'payment successful' });
-            } else {
-                res.status(400).send({ status: 'payment failed' });
-            }
-        });
-
+        return { status: 'success', paymentResponse };
     } catch (error) {
-        console.error('Error retrying payment:', error);
-        res.status(500).send({ status: 'error', error: error.message });
+        console.error('Error processing payment:', error);
+        return { status: 'error', error };
     }
 };
 
@@ -813,8 +784,7 @@ module.exports = {
     cancelProduct,
     // getReturnProduct,
     returnProduct,
-    logPaymentFailure,
     savePendingOrder,
-    retryPayment
+    logPaymentFailure,
 
 }
