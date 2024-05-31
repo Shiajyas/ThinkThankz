@@ -111,7 +111,7 @@
                                     </div>
 
                                     <div class="tab-pane fade" id="orders" role="tabpanel" aria-labelledby="orders-tab">
-                                        <div class="card">
+                                        <div class="card" style="width: 100%;"> <!-- Adjust the width as needed -->
                                             <div class="card-header">
                                                 <h5 class="mb-0">Your Orders</h5>
                                                 <!-- Dropdown to filter by status -->
@@ -127,52 +127,40 @@
                                             </div>
                                             <div class="card-body">
                                                 <div class="table-responsive">
-                                                    <table class="table">
+                                                    <table id="orderTable">
                                                         <thead>
                                                             <tr>
-                                                                <th>Order</th>
+                                                                <th>Order ID</th>
                                                                 <th>Status</th>
-                                                                <th>Total</th>
+                                                                <th>Date</th>
                                                                 <th>Actions</th>
+                                                                <th>Total</th>
+                                                              
+                                                                <!-- Add other headers as needed -->
                                                             </tr>
                                                         </thead>
-                                                        <tbody id="orderTable">
-                                                            <% if (order && order.length > 0) { %>
-                                                                <% for (let i = 0; i < order.length; i++) { %>
-                                                                    <tr class="order-row" data-status="<%= order[i].status %>">
-                                                                        <td><%= order[i]._id %></td>
-                                                                        <td>
-                                                                            <% if (order[i].status === "Pending") { %>
-                                                                                Pending
-                                                                            <% } else if (order[i].status === "Delivered") { %>
-                                                                                Delivered
-                                                                            <% } else if (order[i].status === "Confirmed") { %>
-                                                                                Confirmed
-                                                                            <% } else if (order[i].status === "Returned") { %>
-                                                                                Returned
-                                                                            <% } else if (order[i].status === "Canceled") { %>
-                                                                                Canceled
-                                                                            <% } else if (order[i].status === "Shipped") { %>
-                                                                                Shipped
-                                                                            <% } %>
-                                                                        </td>
-                                                                        <td><%= order[i].totalPrice %></td>
-                                                                        <td><a href="/orderDetails?id=<%= order[i]._id %>" class="btn-small d-block">View</a></td>
-                                                                    </tr>
-                                                                <% } %>
-                                                            <% } else { %>
-                                                                <tr>
-                                                                    <td colspan="4">No Orders found</td>
+                                                        <tbody>
+                                                            <% order.forEach(order => { %>
+                                                                <tr class="order-row" data-status="<%= order.status %>" data-created-on="<%= order.createdOn %>">
+                                                                    <td><%= order._id %></td>
+                                                                    <td><%= order.status %></td>
+                                                                    <td><%= new Date(order.createdOn).toLocaleDateString() %></td>
+                                                                    <td><a href="/orderDetails?id=<%= order._id %>" class="btn-small d-block">View</a></td>
+                                                                    <td><%= order.totalPrice %></td>
+                                                                  
+                                                                    <!-- Add other columns as needed -->
                                                                 </tr>
-                                                            <% } %>
+                                                            <% }) %>
+                                                            <tr id="noResultRow" style="display: none;">
+                                                                <td colspan="3">No results found</td>
+                                                            </tr>
                                                         </tbody>
                                                     </table>
                                                 </div>
                                             </div>
-                                          
-                                            
                                         </div>
                                     </div>
+                                    
                                     <div class="tab-pane fade" id="track-orders" role="tabpanel"
                                         aria-labelledby="track-orders-tab">
                                         <div class="card">
@@ -667,24 +655,43 @@
     });
 </script>
 
-  
-<script>
-                                                document.getElementById('statusFilter').addEventListener('change', function() {
-                                                    var selectedStatus = this.value;
-                                                    var rows = document.querySelectorAll('#orderTable .order-row');
-                                                    
-                                                    rows.forEach(function(row) {
-                                                        if (selectedStatus === 'all') {
-                                                            row.style.display = '';
-                                                        } else {
-                                                            if (row.getAttribute('data-status') === selectedStatus) {
-                                                                row.style.display = '';
-                                                            } else {
-                                                                row.style.display = 'none';
-                                                            }
-                                                        }
-                                                    });
-                                                });
-                                            </script>
 
+<script>
+    document.getElementById('statusFilter').addEventListener('change', function() {
+    var selectedStatus = this.value;
+    var rows = Array.from(document.querySelectorAll('#orderTable .order-row'));
+    var noResultRow = document.getElementById('noResultRow');
+    var hasResults = false;
+
+    // Sort rows by data-created-on attribute in descending order
+    rows.sort(function(a, b) {
+        var dateA = new Date(a.getAttribute('data-created-on'));
+        var dateB = new Date(b.getAttribute('data-created-on'));
+        return dateB - dateA; // For descending order
+    });
+
+    // Reorder the rows in the table based on the sorted order
+    var tbody = document.querySelector('#orderTable tbody');
+    rows.forEach(function(row) {
+        tbody.appendChild(row);
+    });
+
+    // Apply filtering based on the selected status
+    rows.forEach(function(row) {
+        if (selectedStatus === 'all' || row.getAttribute('data-status') === selectedStatus) {
+            row.style.display = '';
+            hasResults = true;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    if (!hasResults) {
+        noResultRow.style.display = '';
+    } else {
+        noResultRow.style.display = 'none';
+    }
+});
+
+    </script>
         <%- include("../partials/footer") %>

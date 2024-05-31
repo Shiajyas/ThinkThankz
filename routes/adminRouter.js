@@ -18,7 +18,7 @@ const { isAdmin ,
 Router.get("/login", adminController.getLoginPage)
 Router.post("/login", adminController.verifyLogin)
 Router.get("/logout", isAdmin, adminController.getLogout)
-Router.get("/", disableCache,isAdmin, adminController.adminDashboard)
+Router.get("/",isAdmin, adminController.adminDashboard)
 
 
 // Category Management

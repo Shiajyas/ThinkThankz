@@ -63,7 +63,8 @@
                                         </div>
                                         <div class="col-2" style="margin-right: 40px;">
                                             
-                                            <button class="btn custom-btn" id="retryPaymentBtn">Retry Payment</button>
+                                            <button class="btn custom-btn" id="retryPaymentBtn" data-order-id="<%= orders._id %>">Retry Payment</button>
+
                                         </div>
                                     </div>
                                 <% } else { %>
@@ -220,7 +221,7 @@
                                                Coupon Discount
                                             </td>
                                             <td class="text-center align-middle">
-                                               - ₹<%=orders.couponDiscount.toLocaleString() %>
+                                               - ₹<%=discount.toLocaleString() %>
                                             </td>
                                         </tr>
                                         <tr>
@@ -377,10 +378,12 @@
     </style>
 
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
-
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
- 
+
+        
+
  function handleDropdownChange(selectElement, orderId) {
     var selectedValue = selectElement.value;
     console.log(selectedValue, orderId);
@@ -482,37 +485,207 @@ function confirmCancel(orderId, productId) {
             // This function can be used for additional actions when the "Save" button is clicked
             // You can add more logic here if needed
         }
-    </script>
 
-<script>
-    document.getElementById('retryPaymentBtn').addEventListener('click', async () => {
-        const orderId = '<%= orders._id %>';
 
+        document.getElementById('retryPaymentBtn').addEventListener('click', async () => {
+    const retryOrderId = document.getElementById('retryPaymentBtn').getAttribute('data-order-id');
+    await retryOrder(retryOrderId);
+});
+
+async function retryOrder(retryOrderId) {
+    // Assuming you have access to an order object that has these properties
+    const order = {
+        address: '<%= orders.address %>',  // Replace with actual order data
+        payment: '<%= orders.payment %>',  // Replace with actual order data
+        totalPrice: '<%= orders.totalPrice %>'  // Replace with actual order data
+    };
+
+    const address = order.address;
+    const payment = order.payment;
+    const totalValue = order.totalPrice;
+
+    if (!payment) {
+        Swal.fire({
+            title: 'NO PAYMENT FOUND!',
+            text: 'Please select your Payment.',
+            icon: 'error',
+            timer: 3000,
+        });
+    } else if (!address) {
+        Swal.fire({
+            title: 'NO ADDRESS FOUND!',
+            text: 'Please select your address.',
+            icon: 'error',
+            timer: 3000,
+        });
+    } else {
         try {
-            const response = await axios.post('/retryPayment', { orderId });
-
-            if (response.data.status === 'Payment successful') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success',
-                    text: 'Payment was successful!',
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Payment Failed',
-                    text: response.data.error || 'An error occurred during payment.',
-                });
-            }
-        } catch (err) {
+            const response = await $.ajax({
+                url: '/orderPlaced',
+                method: 'POST',
+                data: {
+                    totalPrice: totalValue,
+                    addressId: address,
+                    payment: payment,
+                    retryOrderId: retryOrderId // Include the retryOrderId here
+                }
+            });
+            handlePaymentResponse(response, retryOrderId, totalValue, address);
+        } catch (error) {
+            console.error("Order placement failed:", error);
             Swal.fire({
-                icon: 'error',
-                title: 'Payment Failed',
-                text: err.message,
+                title: "Order failed",
+                text: "Something went wrong. Please try again.",
+                icon: "error",
+                showConfirmButton: true,
+            });
+        }
+    }
+}
+
+function handlePaymentResponse(response, retryOrderId, totalValue, address) {
+    if (response.method === "cod") {
+        Swal.fire({
+            title: "Order success",
+            text: "Order placed successfully",
+            icon: "success",
+            showConfirmButton: false,
+            timer: 2000,
+        }).then(() => {
+            location.href = '/profile';
+        });
+    } else if (response.method === "online") {
+        let orderAmount = Math.round(totalValue * 100);
+        var options = {
+            "key": "rzp_test_297s5pqDLLHUia",
+            "amount": orderAmount,
+            "currency": "INR",
+            "name": "LapLux",
+            "description": "Test Transaction",
+            "image": "https://example.com/your_logo",
+            "order_id": response.razorpayOrder.id,
+            "handler": function (status) {
+                verifyPayment(response.razorpayOrder.id, status, retryOrderId);
+            },
+            "prefill": {
+                "name": "Customer Name",
+                "email": "customer@example.com",
+                "contact": "9000090000"
+            },
+            "theme": {
+                "color": "#3399cc"
+            }
+        };
+        var rzp1 = new Razorpay(options);
+        rzp1.on('payment.failed', function (response) {
+            handlePaymentFailure(response, retryOrderId, totalValue, address);
+        });
+        rzp1.open();
+    } else if (response.method === "wallet") {
+        if (response.payment === true) {
+            Swal.fire({
+                title: "Order success",
+                text: "Order placed successfully",
+                icon: "success",
+                showConfirmButton: false,
+                timer: 2000,
+            }).then(() => {
+                location.href = '/profile';
+            });
+        } else {
+            Swal.fire({
+                title: "Order failed",
+                text: "Wallet amount is not enough",
+                icon: "error",
+                showConfirmButton: true,
+            });
+        }
+    }
+}
+
+function handlePaymentFailure(response, orderId, totalValue, address) {
+    console.error('Payment failed:', response);
+
+    // Log payment failure details to the server
+    $.ajax({
+        url: '/logPaymentFailure',
+        method: 'POST',
+        data: {
+            code: response.error.code,
+            description: response.error.description,
+            source: response.error.source,
+            step: response.error.step,
+            reason: response.error.reason,
+            order_id: response.error.metadata.order_id,
+            payment_id: response.error.metadata.payment_id,
+            user_id: orderId,
+            status: true,
+            total_price: totalValue,
+            address_id: address
+        },
+        success: (res) => {
+            Swal.fire({
+                title: "Payment failed",
+                text: "Order still pending.",
+                icon: "error",
+                showConfirmButton: true,
+            }).then(() => {
+                location.href = '/profile';
             });
         }
     });
-</script>
+
+    // Save the order as pending
+ 
+}
+
+function verifyPayment(orderId, payment, id) {
+    $.ajax({
+        url: '/verifyPayment',
+        method: 'post',
+        data: {
+            orderId,
+            payment
+        },
+        success: (response) => {
+            if (response.status) {
+                Swal.fire({
+                    title: "Order success",
+                    text: "Order placed successfully",
+                    icon: "success",
+                    showCancelButton: true,
+                    confirmButtonText: "View orders",
+                    cancelButtonText: "Continue shopping",
+                    reverseButtons: true
+                }).then(function (result) {
+                    if (result.value) {
+                        location.href = '/profile';
+                    } else if (result.dismiss === "cancel") {
+                        location.href = '/'
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: "Payment verification failed",
+                    text: "Your payment could not be verified. Please try again.",
+                    icon: "error",
+                    showConfirmButton: true,
+                });
+            }
+        },
+        error: function (xhr, status, error) {
+            console.error("Payment verification failed:", status, error);
+            Swal.fire({
+                title: "Payment verification failed",
+                text: "Something went wrong. Please try again.",
+                icon: "error",
+                showConfirmButton: true,
+            });
+        }
+    });
+}
+
+    </script>
 
 
 

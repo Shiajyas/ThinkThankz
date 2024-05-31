@@ -10,6 +10,7 @@ const bcrypt = require("bcryptjs");
 const Return = require("../models/returnSchema")
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
+const Brand = require("../models/brandSchema")
 
 // const getDashboard = async (req, res) => {
 //     try {
@@ -498,22 +499,127 @@ const downloadExcel = async (req, res) => {
     }
 }
 
-
 const adminDashboard = async (req, res) => {
-   
+    try {
+        const currentYear = new Date().getFullYear();
+        const { filter = 'monthly', year = currentYear } = req.query;
 
-       
-   
-        const admin = req.session.admin
+        console.log(req.query)
 
-        if(admin){
-            res.render("index")
-        }else{
-            res.redirect("/admin/login")
+      
+        let dateMatch;
+        if (filter === 'yearly') {
+            dateMatch = { year: { $year: '$createdOn' } }; // Corrected
+        } else {
+            dateMatch = {
+                year: { $year: '$createdOn' },
+                month: { $month: '$createdOn' }
+            };
         }
+        
+        console.log(dateMatch,">>>>>>>Date")
 
-  
-}
+        const [
+            categories, 
+            deliveredOrders, 
+            products, 
+            users, 
+            monthlyOrders, 
+            monthlySales, 
+            latestOrders, 
+            bestSellingProducts, 
+            bestSellingCategories, 
+            bestSellingBrands
+        ] = await Promise.all([
+            Category.find({ isListed: true }),
+            Order.find({ status: "Delivered" }),
+            Product.find({}),
+            User.find({}),
+            Order.find({ status: "Delivered", createdOn: { $gte: new Date(year, 0, 1), $lt: new Date(year + 1, 0, 1) } }),
+            Order.aggregate([
+                { $match: { status: "Delivered" } },
+                { $group: { _id: dateMatch, count: { $sum: 1 }, totalRevenue: { $sum: '$totalPrice' } } },
+                { $sort: { '_id': 1 } }
+            ]),
+            Order.find().sort({ createdOn: -1 }).limit(5),
+            Order.aggregate([
+                { $match: { status: "Delivered" } },
+                { $unwind: '$product' },
+                { $group: { _id: '$product.name', totalSold: { $sum: '$product.quantity' } } },
+                { $sort: { totalSold: -1 } },
+                { $limit: 10 }
+            ]),
+            Order.aggregate([
+                { $match: { status: "Delivered" } },
+                { $unwind: '$product' },
+                { $group: { _id: '$product.category', totalSold: { $sum: '$product.quantity' } } },
+                { $sort: { totalSold: -1 } },
+                { $limit: 10 }
+            ]),
+            Order.aggregate([
+                { $match: { status: "Delivered" } },
+                { $unwind: '$product' },
+                { $group: { _id: '$product.brand', totalSold: { $sum: '$product.quantity' } } },
+                { $sort: { totalSold: -1 } },
+                { $limit: 10 }
+            ])
+        ]);
+
+        // Debugging Statements
+        // console.log("Categories:", categories);
+        // console.log("Delivered Orders:", deliveredOrders);
+        // console.log("Products:", products);
+        // console.log("Users:", users);
+        // console.log("Monthly Orders:", monthlyOrders);
+        // console.log("Monthly Sales:", monthlySales);
+        // console.log("Latest Orders:", latestOrders);
+        // console.log("Best Selling Products:", bestSellingProducts);
+        // console.log("Best Selling Categories:", bestSellingCategories);
+        // console.log("Best Selling Brands:", bestSellingBrands);
+
+        const totalRevenue = deliveredOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+        const monthlyRevenue = monthlyOrders.reduce((sum, order) => sum + order.totalPrice, 0);
+
+        // console.log("totalRevenue:", totalRevenue);
+        // console.log("monthlyRevenue:", monthlyRevenue)
+
+        const monthlySalesArray = filter === 'yearly' 
+            ? Array.from({ length: 12 }, (_, index) => {
+                const monthData = monthlySales.find(item => item._id.month === index + 1 && item._id.year === year);
+                return monthData ? monthData.count : 0;
+            })
+            : Array.from({ length: 12 }, (_, index) => {
+                const monthData = monthlySales.find(item => item._id.month === index + 1);
+                return monthData ? monthData.count : 0;
+            });
+
+        const productPerMonth = Array(12).fill(0);
+        products.forEach(p => {
+            const createdMonth = new Date(p.createdOn).getMonth();
+            productPerMonth[createdMonth]++;
+        });
+
+        res.render("index", {
+            orderCount: deliveredOrders.length,
+            productCount: products.length,
+            categoryCount: categories.length,
+            totalRevenue,
+            monthlyRevenue,
+            monthlySalesArray,
+            productPerMonth,
+            latestOrders,
+            bestSellingProducts,
+            bestSellingCategories,
+            bestSellingBrands,
+            filter,
+            year
+        });
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).send("Internal Server Error");
+    }
+};
+
 
 
 

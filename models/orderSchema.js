@@ -27,14 +27,10 @@ const orderSchema = new mongoose.Schema({
         default: 'Pending',
         required: true
     },
-    paymentId:{
-        type: String,
-        unique: true
-    },
     createdOn: {
-        type: Date,
-        default: Date.now,
-        required: true
+         type: Date,
+    default: Date.now,
+    required: true
     },
     date: {
         type: String

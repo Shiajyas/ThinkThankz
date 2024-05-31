@@ -165,18 +165,20 @@
                                 <h5>Available Coupons</h5>
                             </div>
                             
-                            <% if (locals.coupons) { %>
-                                <select id="couponDropdown" class="form-select" style="margin-left: 150px; margin-top: 20px; width: 200px;">
-                                    <option value="">Select a coupon</option>
-                                    <% for (let i=0; i < coupons.length; i++) { %>
-                                        <option value="<%= coupons[i].name %>"><%= coupons[i].name %></option>
-                                    <% } %>
-                                </select>
-                            <% } else { %>
-                                <h3>No coupons available</h3>
-                            <% } %>
                             
 
+                            <div class="container">
+                                <% if (locals.coupons && coupons.length > 0) { %>
+                                    <select id="couponDropdown" class="form-select" style="margin-left: 150px; margin-top: 20px; width: 200px;">
+                                        <option value="">Select a coupon</option>
+                                        <% for (let i = 0; i < coupons.length; i++) { %>
+                                            <option value="<%= coupons[i].name %>"><%= coupons[i].name %></option>
+                                        <% } %>
+                                    </select>
+                                <% } else { %>
+                                    <h3>No coupons available</h3>
+                                <% } %>
+                            </div>
 
 
 
@@ -253,13 +255,13 @@
 
                                                             <div class="ml-65">
                                                                 <%if(isSingle===true){%>
-                                                                    <button type="button" class="btn"
+                                                                    <button type="button" class="btn btn-primary"
                                                                         onclick="placeOrder('<%= user._id %>' , '<%=product[0]._id%>',  true)">Place
                                                                         order</button>
                                                                     <%}else{%>
                                                                         
                                                                         
-                                                                        <button type="button" class="btn"
+                                                                        <button type="button" class= "btn btn-primary"
                                                                             onclick="placeOrder('<%= user._id %>', [<% for (let i = 0; i < data.length; i++) { %>'<%= data[i].productDetails[0]._id %>'<% if (i < data.length - 1) { %>,<% } %><% } %>], false)">Place
                                                                             Order</button>
 
@@ -268,13 +270,12 @@
 
                                                             </div>
                                                         </div>
-                                                        <div class="input-group mb-3 col-5" style="border: 1px solid #ced4da; border-radius: 5px; width: 300px; margin-left: 200px; margin-top: 60px;">
+                                                        <div class="input-group mb-3 col-6" style="border: 1px solid #ced4da; border-radius: 5px; width: 300px; margin-left: 200px; margin-top: 60px;">
                                                             <input type="text" class="form-control" id="inputCoupon" placeholder="Paste Coupon Name" >
                                                             <div class="input-group-append">
                                                                 <button class="btn btn-primary" id="applyButton" type="button" onclick="applyCoupon('<%=totalAmount%>')">Apply</button>
                                                             </div>
                                                         </div>
-                                                        
                     </div>
 
 
@@ -359,6 +360,9 @@
                 </div>
             </div>
     </section>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
@@ -490,10 +494,12 @@ function handlePaymentFailure(response, userId, prodId, numericValue, address) {
         success: (res) => {
             Swal.fire({
                 title: "Payment failed",
-                text: "Unfortunately, your payment could not be processed. Please try again.",
+                text: "Order moved the order list but order still pending.",
                 icon: "error",
                 showConfirmButton: true,
-            });
+            }).then(() => {
+                            location.href ='/profile';
+                        });;
         }
     });
 
@@ -563,40 +569,7 @@ function verifyPayment(orderId, payment, id) {
 }
 
 
-        function showCouponDetails(couponName) {
-            Swal.fire({
-                title: 'Coupon Details',
-                text: `${couponName}`,
-                icon: 'info',
-                confirmButtonText: 'OK'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    copyToClipboard(couponName);
-                }
-            });
-        }
-
-        function copyToClipboard(text) {
-            var tempInput = document.createElement('input');
-            document.body.appendChild(tempInput);
-            tempInput.value = text;
-
-            tempInput.select();
-            document.execCommand('copy');
-
-            document.body.removeChild(tempInput);
-
-            Swal.fire({
-                title: 'Copied!',
-                text: 'Coupon name has been copied to the clipboard.',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            });
-        }
-
-
-
-        function applyCoupon(total){
+function applyCoupon(total){
         const coupon = document.getElementById('inputCoupon').value
         $.ajax({
             url:'/applyCoupon',
@@ -620,6 +593,7 @@ function verifyPayment(orderId, payment, id) {
                     // alert(discount)
                     document.getElementById('totalValue').innerHTML = gt-parseInt(response.offerPrice);
                     document.getElementById('discount').innerHTML = discount+parseInt(response.offerPrice);
+                    Swal.fire("Coupon applied");
                 }
             }
         })
@@ -672,5 +646,42 @@ function verifyPayment(orderId, payment, id) {
 
     </script>
 
+<script>
+    document.getElementById('couponDropdown').addEventListener('change', function() {
+        var selectedCoupon = this.value;
+        if (selectedCoupon) {
+            showCouponDetails(selectedCoupon);
+        }
+    });
+
+    function showCouponDetails(couponName) {
+        Swal.fire({
+            title: 'Coupon Details',
+            text: `${couponName}`,
+            icon: 'info',
+            confirmButtonText: 'OK'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                copyToClipboard(couponName);
+            }
+        });
+    }
+
+    function copyToClipboard(text) {
+        var tempInput = document.createElement('input');
+        document.body.appendChild(tempInput);
+        tempInput.value = text;
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+
+        Swal.fire({
+            title: 'Copied!',
+            text: 'Coupon name has been copied to the clipboard.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    }
+</script>
 
     <%- include("../partials/footer") %>
