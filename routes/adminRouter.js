@@ -93,5 +93,6 @@ Router.get("/dateWiseFilter", isAdmin, adminController.dateWiseFilter)
 Router.get("/dateRange", isAdmin, adminController.dateRangeFilter)
 Router.post("/generatePdf", isAdmin, adminController.generatePdf)
 Router.post("/downloadExcel", isAdmin, adminController.downloadExcel)
+Router.post("/generateLedgerPdf", isAdmin, adminController.generateLedgerPdf )
 
 module.exports = Router

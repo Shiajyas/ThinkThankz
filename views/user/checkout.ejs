@@ -366,7 +366,6 @@
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
-
 async function placeOrder(userId, prodId, isSingle) {
     let address = $("input[name='selectedAddress']:checked").val();
     let payment = $("input[name='payment_option']:checked").val();
@@ -401,15 +400,24 @@ async function placeOrder(userId, prodId, isSingle) {
             },
             success: function (response) {
                 if (response.method === "cod") {
-                    Swal.fire({
-                        title: "Order success",
-                        text: "Order placed successfully",
-                        icon: "success",
-                        showConfirmButton: false,
-                        timer: 2000,
-                    }).then(() => {
-                        location.href ='/profile';
-                    });
+                    if (response.payment) {
+                        Swal.fire({
+                            title: "Order success",
+                            text: "Order placed successfully",
+                            icon: "success",
+                            showConfirmButton: false,
+                            timer: 2000,
+                        }).then(() => {
+                            location.href = '/profile';
+                        });
+                    } else {
+                        Swal.fire({
+                            title: "Cash on Delivery Not Allowed",
+                            text: "Cash on Delivery is not allowed for orders over 1000. Please select another payment method.",
+                            icon: "warning",
+                            showConfirmButton: true,
+                        });
+                    }
                 } else if (response.method === "online") {
                     let orderAmount = Math.round(numericValue * 100);
                     var options = {
@@ -446,7 +454,7 @@ async function placeOrder(userId, prodId, isSingle) {
                             showConfirmButton: false,
                             timer: 2000,
                         }).then(() => {
-                            location.href ='/profile';
+                            location.href = '/profile';
                         });
                     } else {
                         Swal.fire({
@@ -462,7 +470,7 @@ async function placeOrder(userId, prodId, isSingle) {
                 console.error("Order placement failed:", status, error);
                 Swal.fire({
                     title: "Order failed",
-                    text: "Something went wrong. Please try again.",
+                    text: xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : "Something went wrong. Please try again.",
                     icon: "error",
                     showConfirmButton: true,
                 });

@@ -7,25 +7,25 @@
             <p>Whole data about your business here</p>
         </div>
     
-            <div class="col-lg-2 col-md-3 col-6">
-               <label for="chartFilterSelection">Select Chart Filter</label>
-               <select id="chartFilterSelection" class="form-select">
-                   <option value="monthly" <%= filter === 'monthly' ? 'selected' : '' %>>Monthly</option>
-                   <option value="yearly" <%= filter === 'yearly' ? 'selected' : '' %>>Yearly</option>
-               </select>
-           </div>
-       
-           <!-- Single Year Selection -->
-           <div class="col-md-2 col-6">
-               <label for="selectedYear">Select Year</label>
-               <input type="number" id="selectedYear" class="form-control" value="<%= year %>" min="2000" max="<%= new Date().getFullYear() %>">
-           </div>
-       
-           <!-- Submit Button -->
-           <div class="col-md-2 col-6 align-self-end">
-               <button id="filterButton" class="btn btn-primary">Filter</button>
-           </div>
-
+        <div class="col-lg-2 col-md-3 col-6">
+            <label for="chartFilterSelection">Select Chart Filter</label>
+            <select id="chartFilterSelection" name="filter" class="form-select">
+                <option value="monthly" <%= filter === 'monthly' ? 'selected' : '' %>>Monthly</option>
+                <option value="yearly" <%= filter === 'yearly' ? 'selected' : '' %>>Yearly</option>
+            </select>
+        </div>
+        
+        <!-- Single Year Selection -->
+        <div class="col-md-2 col-6">
+            <label for="selectedYear">Select Year</label>
+            <input type="number" id="selectedYear" name="year" class="form-control" value="<%= year %>" min="2000" max="<%= new Date().getFullYear() %>">
+        </div>
+        
+        <!-- Submit Button -->
+        <div class="col-md-2 col-6 align-self-end">
+            <button id="filterButton" class="btn btn-primary" type="submit" form="filterForm">Filter</button>
+        </div>
+        
      
     </div>
     <div class="row">
@@ -273,55 +273,55 @@
 </script>
 
 <script>
-   document.addEventListener('DOMContentLoaded', function () {
-    var productPerMonth = <%= JSON.stringify(productPerMonth) %>;
-    var monthlySalesArray = <%= JSON.stringify(monthlySalesArray) %>;
+    document.addEventListener('DOMContentLoaded', function () {
+        var productPerMonth = <%= JSON.stringify(productPerMonth) %>;
+        var monthlySalesArray = <%= JSON.stringify(monthlySalesArray) %>;
 
-    var ctx = document.getElementById('myChart').getContext('2d');
-    var existingChart = Chart.getChart(ctx);
-    if (existingChart) {
-        existingChart.destroy();
-    }
+        var ctx = document.getElementById('myChart').getContext('2d');
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            datasets: [{
-                label: 'Products',
-                tension: 0.3,
-                fill: true,
-                backgroundColor: 'rgba(44, 120, 220, 0.2)',
-                borderColor: 'rgba(44, 120, 224)',
-                data: productPerMonth
+        var existingChart = Chart.getChart(ctx);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+        // alert('Before initializing Chart');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                datasets: [{
+                    label: 'Products',
+                    tension: 0.3,
+                    fill: true,
+                    backgroundColor: 'rgba(44, 120, 220, 0.2)',
+                    borderColor: 'rgba(44, 120, 220)',
+                    data: productPerMonth
+                },
+                {
+
+                    label: 'Sales',
+                    tension: 0.3,
+                    fill: true,
+                    backgroundColor: 'rgba(4, 209, 130, 0.2)',
+                    borderColor: 'rgb(4, 209, 130)',
+                    data: monthlySalesArray,
+                }]
             },
-            {
-                label: 'Sales',
-                tension: 0.3,
-                fill: true,
-                backgroundColor: 'rgba(4, 209, 130, 0.2)',
-                borderColor: 'rgb(4, 209, 130)',
-                data: monthlySalesArray,
-            }]
-        },
-        options: {
-            plugins: {
-                legend: {
-                    labels: {
-                        usePointStyle: true,
-                    },
+            options: {
+                plugins: {
+                    legend: {
+                        labels: {
+                            usePointStyle: true,
+                        },
+                    }
                 }
             }
-        }
-    });
 
-    document.getElementById('filterButton').addEventListener('click', function () {
-        var filter = document.getElementById('chartFilter').value;
-        var year = document.getElementById('yearInput').value;
-        window.location.href = `/admin/dashboard?filter=${filter}&year=${year}`;
+
+        });
+        // alert('After initializing Chart');
     });
-});
 
 </script>
+
 
 <%- include("../partials/adminFooter") %>

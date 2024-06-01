@@ -132,7 +132,6 @@ const orderPlaced = async (req, res) => {
                     quantity: 1
                 };
 
-
                 order = new Order({
                     product: [productDetails],
                     totalPrice,
@@ -192,6 +191,9 @@ const orderPlaced = async (req, res) => {
         await order.save();
 
         if (payment === 'cod') {
+            if (order.totalPrice >= 1000) {
+                return res.status(400).json({ error: "COD not allowed for orders over 1000. Please select another payment method." });
+            }
             order.status = "Confirmed";
             await order.save();
             if (isSingle !== "true") {
@@ -225,27 +227,7 @@ const orderPlaced = async (req, res) => {
     }
 };
 
-const retryOrderPlacement = async (failedOrderId, paymentDetails) => {
-    try {
-        const failedOrder = await Order.findById(failedOrderId);
-        if (!failedOrder) {
-            throw new Error('Failed order not found');
-        }
 
-        failedOrder.payment = paymentDetails.payment;
-        failedOrder.status = "Pending";
-
-        if (paymentDetails.payment === 'online') {
-            const generatedOrder = await generateOrderRazorpay(failedOrder._id, failedOrder.totalPrice);
-            failedOrder.razorpayOrderId = generatedOrder.id;
-        }
-
-        await failedOrder.save();
-        return failedOrder;
-    } catch (error) {
-        throw new Error(`Error in retrying order placement: ${error.message}`);
-    }
-};
 
 
 const generateOrderRazorpay = (orderId, total) => {
@@ -296,6 +278,27 @@ const verifyPayment = async (req, res) => {
     }
 };
 
+const retryOrderPlacement = async (failedOrderId, paymentDetails) => {
+    try {
+        const failedOrder = await Order.findById(failedOrderId);
+        if (!failedOrder) {
+            throw new Error('Failed order not found');
+        }
+
+        failedOrder.payment = paymentDetails.payment;
+        failedOrder.status = "Pending";
+
+        if (paymentDetails.payment === 'online') {
+            const generatedOrder = await generateOrderRazorpay(failedOrder._id, failedOrder.totalPrice);
+            failedOrder.razorpayOrderId = generatedOrder.id;
+        }
+
+        await failedOrder.save();
+        return failedOrder;
+    } catch (error) {
+        throw new Error(`Error in retrying order placement: ${error.message}`);
+    }
+};
 
 const getOrderListPageAdmin = async (req, res) => {
     try {

@@ -314,11 +314,21 @@ const salesYearly = async (req, res) => {
         console.log(error.message);
     }
 }
+
 const generatePdf = async (req, res) => {
     try {
         const doc = new PDFDocument({ margin: 20 });
         const filename = 'sales-report.pdf';
         const orders = req.body;
+
+        const logoPath = "./public/user-assets/imgs/theme/ThinkThankz-logo/cover.png"; // Replace with the actual path to your company logo
+
+        // Add company logo at the top left side of the heading
+        doc.image(logoPath, {
+            fit: [150, 150], // Adjust size
+            align: 'left',
+            valign: 'top'
+        }).moveDown(2);
 
         // Initialize totals
         let totalOrders = 0;
@@ -498,6 +508,111 @@ const downloadExcel = async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 }
+
+const generateLedgerPdf = async (req, res) => {
+    try {
+        const doc = new PDFDocument({ margin: 20 });
+        const filename = 'ledger-report.pdf';
+        const orders = req.body;
+     
+        const logoPath = "./public/user-assets/imgs/theme/ThinkThankz-logo/cover.png"; // Replace with the actual path to your company logo
+
+        // Add company logo at the top left side of the heading
+        doc.image(logoPath, {
+            fit: [150, 150], // Adjust size
+            align: 'left',
+            valign: 'top'
+        });
+
+        // Set up document
+        doc.fontSize(20).text('Ledger Report', { align: 'center' }).moveDown(1.5);
+
+        // Initialize totals
+        let totalDebit = 0;
+        let totalCredit = 0;
+        let totalGST = 0;
+
+        // Calculate totals
+        orders.forEach((order) => {
+            const debitAmount = order.totalAmount || 0;
+            const creditAmount = order.finalPrice || 0;
+            const gst = creditAmount * 0.09; // GST is 9% of the credit
+            totalDebit += debitAmount;
+            totalCredit += creditAmount + gst; // Add GST to credit
+            totalGST += gst; // Accumulate total GST
+        });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+        doc.pipe(res);
+
+        // Add headers
+        const headers = ['Date', 'Description', 'Debit (₹)', 'Credit (₹)', 'Balance (₹)'];
+        const headerWidths = [100, 200, 100, 100, 100]; // Adjusted widths
+        let headerX = 20;
+        let headerY = doc.y;
+        const headerPadding = 30;
+
+        headers.forEach((header, index) => {
+            doc.fontSize(10).text(header, headerX, headerY, { width: headerWidths[index], align: 'center' });
+            headerX += headerWidths[index];
+        });
+
+        doc.moveTo(20, headerY + headerPadding)
+            .lineTo(doc.page.width - 20, headerY + headerPadding)
+            .stroke();
+
+        let dataY = headerY + headerPadding + 10;
+        let balance = 0;
+
+        // Add order data to ledger
+        orders.forEach(order => {
+            const date = order.date || '';
+            const description = `Order ID: ${order.dataId} - ${order.name}` || '';
+            const debit = order.totalAmount ? order.totalAmount.toFixed(2) : '0.00';
+            const creditAmount = order.finalPrice || 0;
+            const gst = creditAmount * 0.09; // GST is 9% of the credit
+            const credit = (creditAmount + gst).toFixed(2); // Credit after adding GST
+
+            balance += creditAmount + gst - order.totalAmount;
+
+            const data = [date, description, `₹${debit}`, `₹${credit}`, `₹${balance.toFixed(2)}`];
+
+            let dataX = 20;
+            data.forEach((item, index) => {
+                doc.fontSize(10).text(item, dataX, dataY, { width: headerWidths[index], align: 'center' });
+                dataX += headerWidths[index];
+            });
+
+            dataY += 20;
+
+            if (dataY > doc.page.height - 50) {
+                doc.addPage();
+                dataY = 50;
+            }
+        });
+
+        // Add totals summary
+        doc.addPage();
+        doc.fontSize(14).text('Summary', { align: 'center' }).moveDown(1.5);
+
+        const summaryY = doc.y;
+        doc.fontSize(12)
+            .text(`Total Debit: ₹${totalDebit.toFixed(2)}`, { align: 'left' })
+            .moveDown(0.5)
+            .text(`Total Credit (including GST): ₹${totalCredit.toFixed(2)}`, { align: 'left' })
+            .moveDown(0.5)
+            .text(`Total GST: ₹${totalGST.toFixed(2)}`, { align: 'left' }) // Show total GST
+            .moveDown(0.5)
+            .text(`Final Balance: ₹${balance.toFixed(2)}`, { align: 'left' });
+
+        doc.end();
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).send('Error generating Ledger PDF report');
+    }
+};
+
 
 const adminDashboard = async (req, res) => {
     try {
@@ -839,5 +954,6 @@ module.exports = {
     approveReturnRequest,
     declineReturnRequest,
     returnRequest,
-    dateRangeFilter
+    dateRangeFilter,
+    generateLedgerPdf 
 }

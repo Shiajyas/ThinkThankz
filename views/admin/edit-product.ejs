@@ -124,38 +124,33 @@
                                 </div>
                             </div> <!-- card end// -->
 
+<div class="card mb-2">
+    <div class="card-header">
+        <h4>Choose images</h4>
+    </div>
 
-                            <div class="card mb-2">
-                                <div class="card-header">
-                                    <h4>Choose images</h4>
-                                </div>
+    <div id="addedImagesContainer" class="col-md-6">
+        <% for (let i=0; i < product.productImage.length; i++) { %>
+            <div class="col-md-12 mb-4">
+                <div class="row">
+                    <div class="col-12">
+                        <img class="rounded" style="width: 50px; height: 60px;" src="/uploads/product-images/<%= product.productImage[i] %>" alt="image" data-filename="<%= product.productImage[i] %>">
+                        <span class="delete-icon" onclick="deleteImage('<%= product._id %>', '<%= product.productImage[i] %>')">❌</span>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+    </div>
 
-                                <div id="addedImagesContainer" class="col-md-6">
-                                    <% for (let i=0; i < product.productImage.length; i++) { %>
-                                        <div class="col-md-12 mb-4">
-                                            <div class="row">
-                                                <div class="col-12">
-                                                    <img class="rounded" style="width: 50px; height: 60px;"
-                                                        src="/uploads/product-images/<%= product.productImage[i] %>"
-                                                        alt="image" data-filename="<%= product.productImage[i] %>">
-                                                    <span class="delete-icon"
-                                                        onclick="deleteImage('<%= product._id %>', '<%= product.productImage[i] %>')">❌</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <% } %>
-                                </div>
-
-
-                                <div class="card-body">
-                                    <div class="input-upload">
-                                        <img src="assets/imgs/theme/upload.svg" alt="">
-                                        <input class="form-control border" name="images" id="imageInput" type="file"
-                                            multiple>
-                                    </div>
-                                </div>
-                            </div>
-
+    <div class="card-body">
+        <div class="input-upload">
+            <img src="assets/imgs/theme/upload.svg" alt="">
+            <!-- Use a file input element with the accept attribute set to 'image/*' to only allow image files -->
+            <input class="form-control border" name="images" id="imageInput" type="file" accept="image/*" multiple>
+        </div>
+    </div>
+    
+</div>
 
                             <!-- card end// -->
 
@@ -189,101 +184,90 @@
         }
     </style>
 
-    <script>
 
-        const selectedImages = [];
+  <script>
+    const selectedImages = [];
 
-        document.getElementById("imageInput").addEventListener("change", handleFileSelect);
+document.getElementById("imageInput").addEventListener("change", handleFileSelect);
 
-        function handleFileSelect(event) {
+function handleFileSelect(event) {
+    const addedImagesContainer = document.getElementById("addedImagesContainer");
+    const files = event.target.files;
 
-            const addedImagesContainer = document.getElementById("addedImagesContainer");
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
 
-            addedImagesContainer.innerHTML = "";
+        selectedImages.push(file);
 
-            const files = event.target.files;
+        const thumbnail = document.createElement("div");
+        thumbnail.classList.add("col-md-12", "mb-4");
 
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(file);
+        img.alt = "thumbnail";
+        img.classList.add("rounded");
+        img.style.width = "50px";
+        img.style.height = "60px";
 
-
-                selectedImages.push(file);
-
-
-                const thumbnail = document.createElement("div");
-                thumbnail.classList.add("thumbnail");
-
-
-                const img = document.createElement("img");
-                img.src = URL.createObjectURL(file);
-                img.alt = "thumbnail";
-
-                img.style.width = "50px";
-                img.style.height = "auto";
-
-
-                const removeIcon = document.createElement("span");
-                removeIcon.classList.add("remove-icon");
-                removeIcon.innerHTML = "&times;";
-
-                removeIcon.addEventListener("click", function () {
-
-                    const index = selectedImages.indexOf(file);
-                    if (index !== -1) {
-                        selectedImages.splice(index, 1);
-                    }
-
-                    thumbnail.remove();
-                });
-
-                thumbnail.appendChild(img);
-                thumbnail.appendChild(removeIcon);
-                addedImagesContainer.appendChild(thumbnail);
+        const removeIcon = document.createElement("span");
+        removeIcon.classList.add("delete-icon");
+        removeIcon.innerHTML = "&times;";
+        removeIcon.style.cursor = "pointer";
+        removeIcon.onclick = function() {
+            const index = selectedImages.indexOf(file);
+            if (index !== -1) {
+                selectedImages.splice(index, 1);
             }
+            thumbnail.remove();
+        };
+
+        const imgContainer = document.createElement("div");
+        imgContainer.classList.add("row");
+
+        const imgCol = document.createElement("div");
+        imgCol.classList.add("col-12");
+        imgCol.appendChild(img);
+        imgCol.appendChild(removeIcon);
+
+        imgContainer.appendChild(imgCol);
+        thumbnail.appendChild(imgContainer);
+        addedImagesContainer.appendChild(thumbnail);
+    }
+}
+
+function deleteImage(productId, filename) {
+    deleteSingleImage(productId, filename);
+}
+
+function deleteSingleImage(productId, filename) {
+    fetch("/admin/deleteImage", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ productId, filename }),
+    })
+    .then((response) => location.reload())
+    .then((data) => {
+        if (data.success) {
+            removeImage(filename);
+        } else {
+            console.error("Error deleting image:", data.error);
         }
+    })
+    .catch((error) => {
+        console.error("Error:", error);
+    });
+}
 
+function removeImage(filename) {
+    const imageElement = document.querySelector(`[data-filename="${filename}"]`);
+    if (imageElement) {
+        imageElement.closest('.col-md-12').remove();
+    }
+}
 
-
-
-        function deleteImage(productId, filename) {
-            deleteSingleImage(productId, filename);
-        }
-
-        function deleteSingleImage(productId, filename) {
-            // alert("hi")
-            fetch("/admin/deleteImage", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ productId, filename }),
-            })
-                .then((response) => location.reload())
-                .then((data) => {
-                    // Handle success or error
-                    if (data.success) {
-                        removeImage(filename);
-                        // location.reload()
-                    } else {
-                        console.error("Error deleting image:", data.error);
-                    }
-                })
-                .catch((error) => {
-                    console.error("Error:", error);
-                });
-        }
-
-        // remove the deleted image
-        function removeImage(filename) {
-            const imageElement = document.querySelector(`[data-filename="${filename}"]`);
-
-            if (imageElement) {
-                imageElement.closest('.col-md-12').remove();
-            }
-        }
-
-
-        function validateForm() {
+function validateForm() {
     let isValid = true;
 
     // Validate Product Name
@@ -343,20 +327,15 @@
         isValid = false;
     }
 
-    // Validate Images (At least one image should be uploaded)
-
-
     return isValid;
 }
 
-// Function to be called on form submit
 function validateAndSubmit() {
     if (validateForm()) {
         document.querySelector('form').submit();
     }
 }
 
-
-    </script>
+  </script>
 
     <%- include("../partials/adminFooter") %>
