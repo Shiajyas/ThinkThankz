@@ -43,8 +43,8 @@ app.use(express.static(path.join(__dirname, "public")))
 app.use("/public/uploads/product-images",express.static(path.join(__dirname,"public/uploads/product-images")))
 
 app.post('/webhooks/razorpay', async (req, res) => {
-    const secret = 'your_webhook_secret'; // Replace with your webhook secret from Razorpay
-
+    const secret = 'mazkingtap'; // Replace with your webhook secret from Razorpay
+console.log("its working>>>>>>>>>>>>>")
     // Validate webhook signature
     const shasum = crypto.createHmac('sha256', secret);
     shasum.update(JSON.stringify(req.body));

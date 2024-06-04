@@ -7,6 +7,7 @@ const Product = require("../models/productSchema");
 const Category = require("../models/categorySchema");
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
+const twilio = require("twilio")
 
 
 const Coupon = require("../models/couponSchema")
@@ -97,56 +98,81 @@ function generateOtp() {
 }
 
 //User Registration
-
 const signupUser = async (req, res) => {
     try {
-        const { email,name,referalCode } = req.body
-        req.session.referalCode = referalCode
+        const { email, phone, name, referalCode, password, cPassword } = req.body;
+        req.session.referalCode = referalCode;
+        req.session.phone = phone;
+
         if (!name || name.trim() === "") {
-            res.render("signup", { message: "Give valid UserName" })
-        }
-        const findUser = await User.findOne({ email })
-        if (req.body.password === req.body.cPassword) {
-            if (!findUser) {
-                var otp = generateOtp()
-                console.log(otp);
-                const transporter = nodemailer.createTransport({
-                    host: process.env.EMAIL_HOST,
-                    port: process.env.EMAIL_PORT,
-                    auth: {
-                        user: process.env.EMAIL_USER,
-                        pass: process.env.EMAIL_PASSWORD
-                    }
-                })
-                const info = await transporter.sendMail({
-                    from: process.env.EMAIL_USER,
-                    to: email,
-                    subject: "Verify Your Account ✔",
-                    text: `Your OTP is ${otp}`,
-                    html: `<b>  <h4 >Your OTP  ${otp}</h4>    <br>  <a href="">Click here</a></b>`,
-                })
-                if (info) {
-                    req.session.userOtp = otp
-                    req.session.userData = req.body
-                    res.render("verify-otp", { email })
-                    console.log("Email sented", info.messageId);
-                } else {
-                    res.json("email-error")
-                }
-            } else {
-                console.log("User already Exist");
-                res.render("signup", { message: "User with this email already exists" })
-            }
-        } else {
-            console.log("the confirm pass is not matching");
-            res.render("signup", { message: "The confirm pass is not matching" })
+            return res.render("signup", { message: "Give valid UserName" });
         }
 
+        const findUser = await User.findOne({ email });
+        if (password !== cPassword) {
+            return res.render("signup", { message: "The confirm pass is not matching" });
+        }
+
+        if (findUser) {
+            console.log("User already Exist");
+            return res.render("signup", { message: "User with this email already exists" });
+        }
+
+        const twilioClient = new twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+
+        // Generate OTP
+        var otp = generateOtp();
+        console.log(`Generated OTP: ${otp}`);
+
+        // Ensure 'from' number is a valid Twilio number
+        const fromNumber = +14178072463; // Replace with your Twilio number
+        const toNumber = phone.startsWith('+') ? phone : `+91${phone}`; // Ensure correct format
+
+        try {
+            const message = await twilioClient.messages.create({
+                body: `Your OTP is ${otp}`,
+                to: toNumber,
+                from: fromNumber,
+            });
+            console.log(`Twilio message sent: ${message.sid}`);
+        } catch (twilioError) {
+            console.error('Twilio Error:', twilioError);
+            return res.status(500).render("signup", { message: "Failed to send OTP via SMS" });
+        }
+
+        // Send email with OTP
+        const transporter = nodemailer.createTransport({
+            host: process.env.EMAIL_HOST,
+            port: process.env.EMAIL_PORT,
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASSWORD,
+            },
+        });
+
+        try {
+            const info = await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: "Verify Your Account ✔",
+                text: `Your OTP is ${otp}`,
+                html: `<b><h4>Your OTP ${otp}</h4><br><a href="">Click here</a></b>`,
+            });
+            console.log("Email sent", info.messageId);
+            
+            req.session.userOtp = otp;
+            req.session.userData = req.body;
+            res.render("verify-otp", { email });
+        } catch (emailError) {
+            console.error('Email Error:', emailError);
+            return res.status(500).render("signup", { message: "Failed to send OTP via email" });
+        }
 
     } catch (error) {
-        console.log(error.message);
+        console.log('Internal Server Error:', error.message);
+        res.status(500).send("Internal Server Error");
     }
-}
+};
 
 
 // render the OTP verification page
@@ -165,8 +191,28 @@ const getOtpPage = async (req, res) => {
 const resendOtp = async (req, res) => {
     try {
         const email = req.session.userData.email;
+        const phone = req.session.phone;
+
         var newOtp = generateOtp();
-        console.log(email, newOtp);
+        console.log(`Resending OTP to ${email}. New OTP: ${newOtp}`);
+
+        const twilioClient = new twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+        
+        // Ensure 'from' number is a valid Twilio number
+        const fromNumber = +14178072463; // Replace with your Twilio number
+        const toNumber = phone.startsWith('+') ? phone : `+91${phone}`; // Ensure correct format
+
+        try {
+            const message = await twilioClient.messages.create({
+                body: `Your OTP is ${newOtp}`,
+                to: toNumber,
+                from: fromNumber,
+            });
+            console.log(`Twilio message sent: ${message.sid}`);
+        } catch (twilioError) {
+            console.error('Twilio Error:', twilioError);
+            return res.json({ success: false, message: 'Failed to resend OTP via SMS' });
+        }
 
         const transporter = nodemailer.createTransport({
             service: "gmail",
@@ -179,28 +225,27 @@ const resendOtp = async (req, res) => {
             }
         });
 
-        
-        const info = await transporter.sendMail({
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "Resend OTP ✔",
-            text: `Your new OTP is ${newOtp}`,
-            html: `<b>  <h4 >Your new OTP is ${newOtp}</h4>    <br>  <a href="">Click here</a></b>`,
-        });
+        try {
+            const info = await transporter.sendMail({
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: "Resend OTP ✔",
+                text: `Your new OTP is ${newOtp}`,
+                html: `<b><h4>Your new OTP is ${newOtp}</h4><br><a href="">Click here</a></b>`,
+            });
+            console.log("Email resent", info.messageId);
 
-        if (info) {
             req.session.userOtp = newOtp;
             res.json({ success: true, message: 'OTP resent successfully' });
-            console.log("Email resent", info.messageId);
-        } else {
-            res.json({ success: false, message: 'Failed to resend OTP' });
+        } catch (emailError) {
+            console.error('Email Error:', emailError);
+            res.json({ success: false, message: 'Failed to resend OTP via email' });
         }
     } catch (error) {
-        console.log(error.message);
+        console.log('Internal Server Error:', error.message);
         res.json({ success: false, message: 'Error in resending OTP' });
-
     }
-}
+};
 
 
 // Verify otp from email with generated otp and save the user data to db

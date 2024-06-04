@@ -93,10 +93,10 @@ const getCheckoutPage = async (req, res) => {
     }
 }
 
+
 const orderPlaced = async (req, res) => {
     try {
         const { totalPrice, addressId, payment, productId, isSingle, retryOrderId } = req.body;
-        console.log(retryOrderId)
         const userId = req.session.user;
         const couponDiscount = req.session.coupon || 0;
         req.session.payment = payment;
@@ -105,6 +105,7 @@ const orderPlaced = async (req, res) => {
 
         if (retryOrderId) {
             // Handle retrying an existing failed order
+            console.log(retryOrderId,">>>>>>>>>>>>>>>>2")
             order = await Order.findById(retryOrderId);
             if (!order) {
                 return res.status(404).json({ error: "Order not found" });
@@ -126,8 +127,8 @@ const orderPlaced = async (req, res) => {
                     price: findProduct.salePrice,
                     name: findProduct.productName,
                     image: findProduct.productImage[0],
-                    brand: findProduct.brand, // Add brand field
-                    category: findProduct.category, // Add category field
+                    brand: findProduct.brand,
+                    category: findProduct.category,
                     productOffer: findProduct.regularPrice - findProduct.salePrice,
                     quantity: 1
                 };
@@ -160,8 +161,8 @@ const orderPlaced = async (req, res) => {
                     regularPrice: item.regularPrice,
                     name: item.productName,
                     image: item.productImage[0],
-                    brand: item.brand, // Add brand field
-                    category: item.category, // Add category field
+                    brand: item.brand,
+                    category: item.category,
                     productOffer: item.regularPrice - item.salePrice,
                     quantity: cartItemQuantities.find(cartItem => cartItem.productId.toString() === item._id.toString()).quantity
                 }));
@@ -227,9 +228,6 @@ const orderPlaced = async (req, res) => {
     }
 };
 
-
-
-
 const generateOrderRazorpay = (orderId, total) => {
     return new Promise((resolve, reject) => {
         const options = {
@@ -248,32 +246,44 @@ const generateOrderRazorpay = (orderId, total) => {
 };
 
 
+
+
+
 const verifyPayment = async (req, res) => {
     try {
-        
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body.payment;
-        // console.log(req.body.payment,">>>>>>>>>4")
-    
-       
-        if ( razorpay_signature) {
-            const order = await Order.findOne({ razorpayOrderId: razorpay_order_id });
-            // console.log(order,">>>>>>>>>>5x")
-          
-            order.status = "Confirmed";
-            order.createdOn = Date.now()
-            await order.save();
-
-            // Clear the cart only after successful payment
-            if (order.product.length > 1) { // This assumes cart orders have more than one product
-                await User.updateOne({ _id: order.userId }, { $set: { cart: [] } });
-            }
-
-            res.json({ status: true });
-        } else {
-            res.json({ status: false });
+        
+        if (!razorpay_signature) {
+            return res.status(400).json({ error: "Missing razorpay_signature" });
         }
+
+        // Verify the signature
+        const generatedSignature = crypto
+            .createHmac('sha256', '2mIxAGRoDSW07JCA6yLo90j0')
+            .update(razorpay_order_id + "|" + razorpay_payment_id)
+            .digest('hex');
+
+        if (generatedSignature !== razorpay_signature) {
+            return res.status(400).json({ error: "Invalid razorpay_signature" });
+        }
+
+        const order = await Order.findOne({ razorpayOrderId: razorpay_order_id });
+        if (!order) {
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        order.status = "Confirmed";
+        order.createdOn = Date.now();
+        await order.save();
+
+        // Clear the cart only after successful payment
+        if (order.product.length > 1) {
+            await User.updateOne({ _id: order.userId }, { $set: { cart: [] } });
+        }
+
+        res.json({ status: true });
     } catch (error) {
-        console.log(error.message);
+        console.error("Error verifying payment:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
@@ -296,6 +306,7 @@ const retryOrderPlacement = async (failedOrderId, paymentDetails) => {
         await failedOrder.save();
         return failedOrder;
     } catch (error) {
+        console.error(`Error in retrying order placement: ${error.message}`);
         throw new Error(`Error in retrying order placement: ${error.message}`);
     }
 };

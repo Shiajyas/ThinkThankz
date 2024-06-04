@@ -81,6 +81,7 @@ Router.get("/changeStatus", isAdmin, orderContoller.changeOrderStatus)
 // Coupon Management
 Router.get("/coupon", isAdmin, adminController.getCouponPageAdmin)
 Router.post("/createCoupon", isAdmin,upload.none(),  adminController.createCoupon)
+Router.post("/delete-coupon", isAdmin,upload.none(),  adminController.deletCoupon)
 
 
 // Sales Report

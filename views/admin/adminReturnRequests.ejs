@@ -1,11 +1,14 @@
 <%- include("../partials/adminHeader") %>
 
+<!-- SweetAlert2 and Axios CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- Axios CDN -->
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<!-- CSS -->
+
+<!-- Bootstrap CSS for styling -->
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Inline CSS for custom styling -->
 <style>
-    /* Inline CSS for demonstration */
     .table {
         width: 100%;
         border-collapse: collapse;
@@ -15,21 +18,6 @@
         border: 1px solid #ddd;
         padding: 8px;
         text-align: left;
-        padding-top: 30px;
-    }
-
-    .dropdown {
-        position: relative;
-        display: inline-block;
-    }
-
-    .dropdown-content {
-        display: none;
-        position: absolute;
-        background-color: #f9f9f9;
-        min-width: 160px;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-        z-index: 1;
     }
 
     .dropdown-content button {
@@ -53,62 +41,84 @@
 </style>
 </head>
 <body>
-    <h3>Return requests</h3>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>User Name</th>
-                <th>Product Name</th>
-                <th>Reason</th>
-                <th>Quantity</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% returnRequests.forEach(request => { %>
+    <div class="container">
+        <h3 class="my-4">Return Requests</h3>
+        <form id="filter-form" class="form-inline mb-4">
+            <div class="form-group mr-3">
+                <label for="status" class="mr-2">Filter by Status:</label>
+                <select id="status" name="status" class="form-control" onchange="applyFilter()">
+                    <option value="">All</option>
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="userName" class="mr-2">Search by User Name:</label>
+                <input type="text" id="userName" name="userName" class="form-control" oninput="applyFilter()" placeholder="Enter user name">
+            </div>
+        </form>
+        
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td><%= request.userId.name %></td>
-                    <td><%= request.productId.productName %></td>
-                    <td>
-                        <% if (request.reason.length > 50) { %>
-                            <button type="button" class="btn btn-link" data-toggle="modal" data-target="#reasonModal<%= request._id %>">View Reason</button>
-                            <!-- Modal -->
-                            <div class="modal fade" id="reasonModal<%= request._id %>" tabindex="-1" role="dialog" aria-labelledby="reasonModalLabel<%= request._id %>" aria-hidden="true">
-                                <div class="modal-dialog" role="document">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="reasonModalLabel<%= request._id %>">Reason</h5>
-                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                                <span aria-hidden="true">&times;</span>
-                                            </button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <%= request.reason %>
+                    <th>User Name</th>
+                    <th>Product Name</th>
+                    <th>Reason</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="request-table-body">
+                <% returnRequests.forEach(request => { %>
+                    <tr>
+                        <td class="user-name"><%= request.userId.name %></td>
+                        <td><%= request.productId.productName %></td>
+                        <td>
+                            <% if (request.reason.length > 50) { %>
+                                <button type="button" class="btn btn-link" data-toggle="modal" data-target="#reasonModal<%= request._id %>">View Reason</button>
+                                <!-- Modal -->
+                                <div class="modal fade" id="reasonModal<%= request._id %>" tabindex="-1" role="dialog" aria-labelledby="reasonModalLabel<%= request._id %>" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="reasonModalLabel<%= request._id %>">Reason</h5>
+                                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <%= request.reason %>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                            <% } else { %>
+                                <%= request.reason %>
+                            <% } %>
+                        </td>
+                        <td><%= request.quantity %></td>
+                        <td class="status"><%= request.status %></td>
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton<%= request._id %>" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Actions
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton<%= request._id %>">
+                                    <button class="dropdown-item" onclick="handleApprove('<%= request._id %>')">Approve</button>
+                                    <button class="dropdown-item" onclick="handleDecline('<%= request._id %>')">Decline</button>
+                                </div>
                             </div>
-                        <% } else { %>
-                            <%= request.reason %>
-                        <% } %>
-                    </td>
-                    <td><%= request.quantity %></td>
-                    <td><%= request.status %></td>
-                    <td>
-                        <div class="dropdown">
-                            <button class="button" style="border: none;">Actions</button>
-                            <div class="dropdown-content">
-                                <button class="approve-button" style="color: rgb(11, 87, 45);" onclick="handleApprove('<%= request._id %>')">Approve</button>
-                                <button class="decline-button" style="color: red;" onclick="handleDecline('<%= request._id %>')">Decline</button>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            <% }) %>
-        </tbody>
-    </table>
-    
+                        </td>
+                    </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+
+<!-- Bootstrap and jQuery scripts for modal functionality -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- Script -->
 <script>
@@ -152,6 +162,28 @@
                     text: error.response.data.message,
                 });
             });
+    }
+
+    // Function to apply filter
+    function applyFilter() {
+        const status = document.getElementById('status').value.toLowerCase();
+        const userName = document.getElementById('userName').value.toLowerCase();
+
+        const rows = document.querySelectorAll('#request-table-body tr');
+
+        rows.forEach(row => {
+            const rowStatus = row.querySelector('.status').textContent.toLowerCase();
+            const rowUserName = row.querySelector('.user-name').textContent.toLowerCase();
+
+            const statusMatch = status === '' || rowStatus === status;
+            const userNameMatch = rowUserName.includes(userName);
+
+            if (statusMatch && userNameMatch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
     }
 </script>
 

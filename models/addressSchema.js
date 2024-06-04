@@ -18,6 +18,10 @@ const addressSchema = Mongoose.Schema({
             type: String,
             required: true
         },
+        email:{
+            type: String,
+            required: true
+        },
         landMark: {
             type: String,
             required: true

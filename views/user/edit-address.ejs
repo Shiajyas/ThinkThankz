@@ -32,6 +32,10 @@
         </div>
         <div class="row mb-3">
             <div class="form-group col-md-4">
+                <label for="phone">Email:</label>
+                <input type="number" class="form-control border-3" id="email" value="<%= address.email %>" name="email" required>
+            </div>
+            <div class="form-group col-md-4">
                 <label for="phone">Phone:</label>
                 <input type="number" class="form-control border-3" id="phone" value="<%= address.phone %>" name="phone" required>
             </div>
@@ -83,7 +87,7 @@
 
     function validateForm() {
         let isValid = true;
-        const requiredFields = ["addressType", "name", "city", "landMark", "state", "pincode", "phone", "altPhone"];
+        const requiredFields = ["addressType", "name", "city", "landMark", "state", "pincode","email", "phone", "altPhone"];
         requiredFields.forEach(function (field) {
             const input = document.getElementById(field);
             if (input.value.trim() === "") {

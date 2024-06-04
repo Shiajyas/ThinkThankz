@@ -432,9 +432,9 @@ async function placeOrder(userId, prodId, isSingle) {
                             verifyPayment(response.razorpayOrder.id, status, response.razorpayOrder.id);
                         },
                         "prefill": {
-                            "name": "Customer Name",
-                            "email": "customer@example.com",
-                            "contact": "9000090000"
+                            "name": address.name,
+                        "email": address.email,
+                        "contact": address.phone
                         },
                         "theme": {
                             "color": "#3399cc"

@@ -106,6 +106,22 @@ const createCoupon = async (req, res) => {
     }
 }
 
+const deletCoupon = async(req,res)=>{
+    const { id } = req.body;
+
+    try {
+      const result = await Coupon.findByIdAndDelete(id);
+      if (result) {
+        res.json({ success: true, message: 'Coupon deleted successfully' });
+      } else {
+        res.json({ success: false, message: 'Coupon not found' });
+      }
+    } catch (error) {
+      console.error('Error deleting coupon:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
 
 
 
@@ -613,100 +629,88 @@ const generateLedgerPdf = async (req, res) => {
     }
 };
 
-
 const adminDashboard = async (req, res) => {
     try {
         const currentYear = new Date().getFullYear();
-        const { filter = 'monthly', year = currentYear } = req.query;
+        let { year = currentYear } = req.query;
 
-        console.log(req.query)
+        // Convert year to a number
+        year = Number(year);
 
-      
-        let dateMatch;
-        if (filter === 'yearly') {
-            dateMatch = { year: { $year: '$createdOn' } }; // Corrected
-        } else {
-            dateMatch = {
-                year: { $year: '$createdOn' },
-                month: { $month: '$createdOn' }
-            };
+        // Validate the year
+        if (isNaN(year) || year < 2000 || year > currentYear) {
+            return res.status(400).send("Invalid year");
         }
-        
-        console.log(dateMatch,">>>>>>>Date")
+
+        const startOfYear = new Date(year, 0, 1);
+        const endOfYear = new Date(year + 1, 0, 1);
 
         const [
-            categories, 
-            deliveredOrders, 
-            products, 
-            users, 
-            monthlyOrders, 
-            monthlySales, 
-            latestOrders, 
-            bestSellingProducts, 
-            bestSellingCategories, 
+            categories,
+            deliveredOrders,
+            products,
+            users,
+            monthlySales,
+            latestOrders,
+            bestSellingProducts,
+            bestSellingCategories,
             bestSellingBrands
         ] = await Promise.all([
             Category.find({ isListed: true }),
             Order.find({ status: "Delivered" }),
             Product.find({}),
             User.find({}),
-            Order.find({ status: "Delivered", createdOn: { $gte: new Date(year, 0, 1), $lt: new Date(year + 1, 0, 1) } }),
             Order.aggregate([
-                { $match: { status: "Delivered" } },
-                { $group: { _id: dateMatch, count: { $sum: 1 }, totalRevenue: { $sum: '$totalPrice' } } },
-                { $sort: { '_id': 1 } }
+                { $match: { status: "Delivered", createdOn: { $gte: startOfYear, $lt: endOfYear } } },
+                {
+                    $group: {
+                        _id: { year: { $year: "$createdOn" }, month: { $month: "$createdOn" } },
+                        count: { $sum: 1 },
+                        totalRevenue: { $sum: "$totalPrice" }
+                    }
+                },
+                { $sort: { "_id.year": 1, "_id.month": 1 } }
             ]),
             Order.find().sort({ createdOn: -1 }).limit(5),
             Order.aggregate([
-                { $match: { status: "Delivered" } },
-                { $unwind: '$product' },
-                { $group: { _id: '$product.name', totalSold: { $sum: '$product.quantity' } } },
+                { $match: { status: "Delivered", createdOn: { $gte: startOfYear, $lt: endOfYear } } },
+                { $unwind: "$product" },
+                {
+                    $group: {
+                        _id: "$product.name",
+                        totalSold: { $sum: "$product.quantity" }
+                    }
+                },
                 { $sort: { totalSold: -1 } },
                 { $limit: 10 }
             ]),
             Order.aggregate([
-                { $match: { status: "Delivered" } },
-                { $unwind: '$product' },
-                { $group: { _id: '$product.category', totalSold: { $sum: '$product.quantity' } } },
+                { $match: { status: "Delivered", createdOn: { $gte: startOfYear, $lt: endOfYear } } },
+                { $unwind: "$product" },
+                {
+                    $group: {
+                        _id: "$product.category",
+                        totalSold: { $sum: "$product.quantity" }
+                    }
+                },
                 { $sort: { totalSold: -1 } },
                 { $limit: 10 }
             ]),
             Order.aggregate([
-                { $match: { status: "Delivered" } },
-                { $unwind: '$product' },
-                { $group: { _id: '$product.brand', totalSold: { $sum: '$product.quantity' } } },
+                { $match: { status: "Delivered", createdOn: { $gte: startOfYear, $lt: endOfYear } } },
+                { $unwind: "$product" },
+                {
+                    $group: {
+                        _id: "$product.brand",
+                        totalSold: { $sum: "$product.quantity" }
+                    }
+                },
                 { $sort: { totalSold: -1 } },
                 { $limit: 10 }
             ])
         ]);
 
-        // Debugging Statements
-        // console.log("Categories:", categories);
-        // console.log("Delivered Orders:", deliveredOrders);
-        // console.log("Products:", products);
-        // console.log("Users:", users);
-        // console.log("Monthly Orders:", monthlyOrders);
-        // console.log("Monthly Sales:", monthlySales);
-        // console.log("Latest Orders:", latestOrders);
-        // console.log("Best Selling Products:", bestSellingProducts);
-        // console.log("Best Selling Categories:", bestSellingCategories);
-        // console.log("Best Selling Brands:", bestSellingBrands);
-
         const totalRevenue = deliveredOrders.reduce((sum, order) => sum + order.totalPrice, 0);
-        const monthlyRevenue = monthlyOrders.reduce((sum, order) => sum + order.totalPrice, 0);
-
-        // console.log("totalRevenue:", totalRevenue);
-        // console.log("monthlyRevenue:", monthlyRevenue)
-
-        const monthlySalesArray = filter === 'yearly' 
-            ? Array.from({ length: 12 }, (_, index) => {
-                const monthData = monthlySales.find(item => item._id.month === index + 1 && item._id.year === year);
-                return monthData ? monthData.count : 0;
-            })
-            : Array.from({ length: 12 }, (_, index) => {
-                const monthData = monthlySales.find(item => item._id.month === index + 1);
-                return monthData ? monthData.count : 0;
-            });
 
         const productPerMonth = Array(12).fill(0);
         products.forEach(p => {
@@ -714,19 +718,23 @@ const adminDashboard = async (req, res) => {
             productPerMonth[createdMonth]++;
         });
 
+        const monthlySalesArray = Array.from({ length: 12 }, (_, index) => {
+            const monthData = monthlySales.find(item => item._id.month === index + 1 && item._id.year === year);
+            return monthData ? monthData.count : 0;
+        });
+
         res.render("index", {
             orderCount: deliveredOrders.length,
             productCount: products.length,
             categoryCount: categories.length,
             totalRevenue,
-            monthlyRevenue,
+            monthlyRevenue: totalRevenue, // Using totalRevenue as placeholder for monthlyRevenue
             monthlySalesArray,
             productPerMonth,
             latestOrders,
             bestSellingProducts,
             bestSellingCategories,
             bestSellingBrands,
-            filter,
             year
         });
     } catch (error) {
@@ -734,8 +742,6 @@ const adminDashboard = async (req, res) => {
         res.status(500).send("Internal Server Error");
     }
 };
-
-
 
 
 const dateWiseFilter = async (req, res)=>{
@@ -942,6 +948,7 @@ module.exports = {
     verifyLogin,
     getCouponPageAdmin,
     createCoupon,
+    deletCoupon,
     getLogout,
     getSalesReportPage,
     salesToday,

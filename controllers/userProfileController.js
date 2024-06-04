@@ -83,6 +83,7 @@ const postAddress = async (req, res) => {
             landMark,
             state,
             pincode,
+            email,
             phone,
             altPhone,
         } = req.body;
@@ -103,6 +104,7 @@ const postAddress = async (req, res) => {
                         landMark,
                         state,
                         pincode,
+                        email,
                         phone,
                         altPhone,
                     },
@@ -180,6 +182,7 @@ const postEditAddress = async (req, res) => {
                         landMark: data.landMark,
                         state: data.state,
                         pincode: data.pincode,
+                        email: data.email,
                         phone: data.phone,
                         altPhone: data.altPhone,
                     },

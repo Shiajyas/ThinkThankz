@@ -7,6 +7,7 @@ const userProfileController = require("../controllers/userProfileController")
 const orderController = require("../controllers/orderContoller")
 const walletController = require("../controllers/walletController")
 const wishlistController = require("../controllers/wishlistController")
+const webhookController = require("../controllers/webhookController")
 
 const multer = require("multer")
 const storage = require("../helpers/multer")
@@ -73,6 +74,7 @@ Router.get("/return", isLogged, orderController.getReturnOrder)
 // Router.get("/returnProduct", isLogged, orderController.getReturnProduct)
 Router.post("/raiseReturnRequest", isLogged, orderController.returnProduct)
 Router.get("/checkoutCart", isLogged, orderController.getCartCheckoutPage)
+Router.post("/webhooks/razorpay", webhookController.handleWebhook);
 
 Router.get("/invoice", orderController.getInvoice)
 Router.post("/applyCoupon", isLogged, userController.applyCoupon)

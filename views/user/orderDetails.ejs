@@ -144,6 +144,8 @@
                                     Address: <%=orders.address[0].landMark%>,<%=orders.address[0].city%> <br>
                                             <%=orders.address[0].state%>,<%=orders.address[0].addressType%> <br>
                                                     <%=orders.address[0].pincode%>
+
+                                                    Email: <%=orders.address[0].email%>
                                 </p>
 
                             </div>
@@ -544,6 +546,7 @@ async function retryOrder(retryOrderId) {
 }
 
 function handlePaymentResponse(response, retryOrderId, totalValue, address) {
+
     if (response.method === "cod") {
         Swal.fire({
             title: "Order success",
@@ -568,9 +571,9 @@ function handlePaymentResponse(response, retryOrderId, totalValue, address) {
                 verifyPayment(response.razorpayOrder.id, status, retryOrderId);
             },
             "prefill": {
-                "name": "Customer Name",
-                "email": "customer@example.com",
-                "contact": "9000090000"
+                "name": address.name || " <%= orders.address[0].name %>",
+                "email": address.email || " <%= orders.address[0].email %>",
+                "contact": address.phone || " <%= orders.address[0].phone %>"
             },
             "theme": {
                 "color": "#3399cc"
