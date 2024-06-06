@@ -557,7 +557,7 @@ const generateLedgerPdf = async (req, res) => {
             totalCredit += creditAmount + gst; // Add GST to credit
             totalGST += gst; // Accumulate total GST
         });
-
+ 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
         doc.pipe(res);
@@ -604,12 +604,12 @@ const generateLedgerPdf = async (req, res) => {
 
             if (dataY > doc.page.height - 50) {
                 doc.addPage();
-                dataY = 50;
+                dataY = 50; 
             }
         });
 
         // Add totals summary
-        doc.addPage();
+        doc.addPage(); 
         doc.fontSize(14).text('Summary', { align: 'center' }).moveDown(1.5);
 
         const summaryY = doc.y;
@@ -629,12 +629,13 @@ const generateLedgerPdf = async (req, res) => {
     }
 };
 
+
 const adminDashboard = async (req, res) => {
     try {
         const currentYear = new Date().getFullYear();
-        let { year = currentYear } = req.query;
+        let { year = currentYear, month } = req.query;
 
-        // Convert year to a number
+        // Convert year to a number     
         year = Number(year);
 
         // Validate the year
@@ -642,8 +643,29 @@ const adminDashboard = async (req, res) => {
             return res.status(400).send("Invalid year");
         }
 
+        // If month is provided, validate and convert it to a number
+        if (month !== undefined) {
+            month = Number(month);
+            // Validate the month
+            if (isNaN(month) || month < 1 || month > 12) {
+                console.log("Invalid month:", month);
+                return res.status(400).send("Invalid month");
+            }
+        } else {
+            // If month is not provided, set it to the current month
+            const currentDate = new Date();
+            month = currentDate.getMonth() + 1; // Months are zero-indexed, so add 1
+            console.log("Current month:", month);
+        }
+
         const startOfYear = new Date(year, 0, 1);
         const endOfYear = new Date(year + 1, 0, 1);
+        let startOfMonth, endOfMonth;
+
+        if (month !== undefined) {
+            startOfMonth = new Date(year, month - 1, 1);
+            endOfMonth = new Date(year, month, 0);
+        }
 
         const [
             categories,
@@ -657,7 +679,7 @@ const adminDashboard = async (req, res) => {
             bestSellingBrands
         ] = await Promise.all([
             Category.find({ isListed: true }),
-            Order.find({ status: "Delivered" }),
+            Order.find({ status: "Delivered", createdOn: { $gte: startOfYear, $lt: endOfYear } }),
             Product.find({}),
             User.find({}),
             Order.aggregate([
@@ -735,7 +757,8 @@ const adminDashboard = async (req, res) => {
             bestSellingProducts,
             bestSellingCategories,
             bestSellingBrands,
-            year
+            year,
+            month // Pass the month to the template
         });
     } catch (error) {
         console.log(error.message);

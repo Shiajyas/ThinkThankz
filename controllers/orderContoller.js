@@ -277,7 +277,7 @@ const verifyPayment = async (req, res) => {
         await order.save();
 
         // Clear the cart only after successful payment
-        if (order.product.length > 1) {
+        if (order.status == "Confirmed") {
             await User.updateOne({ _id: order.userId }, { $set: { cart: [] } });
         }
 

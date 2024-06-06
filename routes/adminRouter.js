@@ -7,7 +7,7 @@ const categoryController = require("../controllers/categoryController")
 const productController = require("../controllers/productController")
 const brandController = require("../controllers/brandController")
 const orderContoller = require("../controllers/orderContoller")
-
+const bannerController = require("../controllers/bannerController")
 
 const { isAdmin ,
     disableCache
@@ -77,6 +77,13 @@ Router.get("/orderList", isAdmin, orderContoller.getOrderListPageAdmin)
 Router.get("/orderDetailsAdmin", isAdmin, orderContoller.getOrderDetailsPageAdmin)
 Router.get("/changeStatus", isAdmin, orderContoller.changeOrderStatus)
 
+//Banner mangement
+Router.get("/banner", isAdmin, bannerController.bannerManagement)
+Router.get("/addBanner", isAdmin, bannerController.getAddBannerPage)
+Router.post("/addBanner", isAdmin,upload.single("images"), bannerController.postAddBanner)
+Router.get("/editBanner", isAdmin, bannerController.getEditBannerPage)
+Router.post("/editBanner", isAdmin,upload.single("images"), bannerController.postEditBanner)
+Router.get("/deleteBanner", isAdmin, bannerController.deleteBanner)
 
 // Coupon Management
 Router.get("/coupon", isAdmin, adminController.getCouponPageAdmin)

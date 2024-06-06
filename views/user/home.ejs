@@ -5,6 +5,38 @@
 
 </head>
 
+
+<style>
+    .swiper-container {
+        width: 100%;
+        height: 100%;
+    }
+    .swiper-slide {
+        text-align: center;
+        font-size: 18px;
+        background: #fff;
+
+        /* Center slide text vertically */
+        display: -webkit-box;
+        display: -ms-flexbox;
+        display: -webkit-flex;
+        display: flex;
+        -webkit-box-pack: center;
+        -ms-flex-pack: center;
+        -webkit-justify-content: center;
+        justify-content: center;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        -webkit-align-items: center;
+        align-items: center;
+    }
+    .swiper-button-next,
+    .swiper-button-prev {
+        color: #fff;
+    }
+</style>
+
+
 <style>
     .home-slider {
         overflow: hidden; /* Hide any content that overflows the container */
@@ -27,32 +59,33 @@
 
 
     <main class="main">
-    
-<section class="home-slider position-relative pt-70 pb-50">
-    <div class="swiper-container">
-        <div class="swiper-wrapper">
-            <% for (let i = 0; i < banner.length; i++) { %>
-                <div class="swiper-slide">
-                    <div class="single-hero-slider single-animation-wrap">
-                        <div class="container">
-                            <div class="row align-items-center slider-animated-1">
-                                <div class="col-lg-12">
-                                    <div class="single-slider-img single-slider-img-1">
-                                        <!-- Place your banner image here -->
-                                        <img class="animated slider-1-1" src="/uploads/product-images/<%= banner[i].image %>" alt="" style="width: 100%; height: auto;">
+      
+        <section class="home-slider position-relative pt-70 pb-50">
+            <div class="swiper-container">
+                <div class="swiper-wrapper">
+                    <% for (let i = 0; i < banner.length; i++) { %>
+                        <div class="swiper-slide">
+                            <div class="single-hero-slider single-animation-wrap">
+                                <div class="container">
+                                    <div class="row align-items-center slider-animated-1">
+                                        <div class="col-lg-12">
+                                            <div class="single-slider-img single-slider-img-1">
+                                                <!-- Place your banner image here -->
+                                                <img class="animated slider-1-1" src="/uploads/product-images/<%= banner[i].image %>" alt="" style="width: 100%; height: auto;">
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    <% } %>
                 </div>
-            <% } %>
-        </div>
-        <div class="swiper-pagination"></div>
-        <div class="swiper-button-next"></div>
-        <div class="swiper-button-prev"></div>
-    </div>
-</section>
+                <div class="swiper-pagination"></div>
+                <div class="swiper-button-next"></div>
+                <div class="swiper-button-prev"></div>
+            </div>
+        </section>
+        
 
         <section class="popular-categories section-padding mt-15 mb-25">
             <div class="container wow fadeIn animated">
@@ -169,7 +202,7 @@
                                 added</button>
                         </li>
                     </ul>
-                    <a href="#" class="view-more d-none d-md-flex">View More<i
+                    <a href="/shop" class="view-more d-none d-md-flex">View More<i
                             class="fi-rs-angle-double-small-right"></i></a>
                 </div>
                 <!--End nav-tabs-->
@@ -192,9 +225,7 @@
                                             </div>
                                             <div class="product-action-1">
                                                
-                                                <a aria-label="Add To Wishlist" class="action-btn hover-up"
-                                                    href="products-wishlist.html"><i class="fi-rs-heart"></i></a>
-                                               
+                                                <a aria-label="Add To Wishlist" class="action-btn hover-up" href="javascript:void(0);" onclick="addToWishlist('<%= products[i]._id %>')"><i class="fi-rs-heart"></i></a>
                                             </div>
                                             <div class="product-badges product-badges-position product-badges-mrg">
                                                 <span class="hot">New</span>
@@ -215,9 +246,7 @@
                                                 <span class="old-price">₹<%-products[i].regularPrice.toLocaleString('en-IN')%></span>
                                             </div>
                                             <div class="product-action-1 show">
-                                                <a aria-label="Add To Cart" class="action-btn hover-up"
-                                                    href="products-cart.html"><i
-                                                        class="fi-rs-productsping-bag-add"></i></a>
+                                                <a aria-label="Add To Cart" onclick="addToCart('<%=products[i]._id%>')" class="action-btn hover-up" ><i class="fi-rs-shopping-bag-add"></i></a>
                                             </div>
                                         </div>
                                     </div>
@@ -238,6 +267,137 @@
         </section>
 
         <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var swiper = new Swiper('.swiper-container', {
+            loop: true,
+            autoplay: {
+                delay: 5000, // Time between slides in milliseconds
+                disableOnInteraction: false, // Allows manual navigation without disabling autoplay
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+            },
+            navigation: {
+                nextEl: '.swiper-button-next',
+                prevEl: '.swiper-button-prev',
+            },
+            speed: 3000, // Slow down the transition speed to 3000ms (3 seconds)
+            effect: 'creative',
+            creativeEffect: {
+                prev: {
+                    // Scale the previous slide to 80% and translate it by 50px
+                    translate: [0, 0, -200],
+                    scale: 0.8,
+                },
+                next: {
+                    // Translate the next slide by 100%
+                    translate: ['100%', 0, 0],
+                },
+            },
+        });
+    });
+</script>
+
+        
+<script>
+    function addToCart(prodId) {
+
+        var quantity = 1;
+        $.ajax({
+            url: `/addToCart?id=${prodId}`,
+            method: "post",
+            data: {
+                quantity: quantity
+            },
+            success: (res) => {
+                if (res.status === true) {
+
+                    Swal.fire({
+                        title: 'Added to Cart!',
+                        text: 'Continue Shopping',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    })
+                } else if (res.status === "Out of stock") {
+                    Swal.fire({
+                        title: 'Stock!!',
+                        text: "The product is out of stock",
+                        icon: 'error', // Corrected from 'fail' to 'error'
+                        timer: 2000,
+                    })
+                } else {
+                    Swal.fire({
+                        title: 'You need to Login first',
+                        text: 'Continue Shopping',
+                        icon: 'warning',
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => { window.location.href = '/login' });
+                }
+            },
+            error: (err) => {
+                console.error(err, "hello");
+                res.alert("error occured")
+            }
+        });
+    }
+
+</script>
+
+
+
+<script>
+
+    function addToWishlist(productId){
+        $.ajax({
+            url : "/addToWishlist",
+            method : "post",
+            data : {
+                productId : productId
+            },
+            success : (response)=>{
+                if(response.status == true){
+                    Swal.fire({
+                                    title: 'Added to Wishlist!',
+                                    text: 'Continue Shopping',
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                })
+                }else if(response.status == false){
+                    Swal.fire({
+                                    title: 'You need to Login first',
+                                    text: 'Continue Shopping',
+                                    icon: 'warning',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => { window.location.href = '/login' });
+                }
+            }
+        })
+        return false;
+    }
+    
+    
+    function getCurrentPageFromURL(element) {
+        
+        const url = window.location.href;
+        const match = url.match(/page=(\d+)/);
+    
+        if (match && match[1]) {
+            return parseInt(match[1], 10);
+        }
+    
+        return 1;
+    }
+    
+    
+        
+    </script>
+    
 
         <script>
             var swiper = new Swiper('.swiper-container', {

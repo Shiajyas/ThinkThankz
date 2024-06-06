@@ -20,44 +20,47 @@ const addProducts = async (req, res) => {
     try {
         console.log("working newwww");
 
-        const products = req.body
+        const products = req.body;
         console.log(products);
-        const productExists = await Product.findOne({ productName: products.productName })
-        if (!productExists) {
-            const images = []
-            if (req.files && req.files.length > 0) {
-                for (let i = 0; i < req.files.length; i++) {
-                    images.push(req.files[i].filename);
-                }
-            }
 
-            const newProduct = new Product({
-                id: Date.now(),
-                productName: products.productName,
-                description: products.description,
-                brand: products.brand,
-                category: products.category,
-                regularPrice: products.regularPrice,
-                salePrice: products.regularPrice,
-                createdOn: new Date(),
-                quantity: products.quantity,
-                pixel: products.pixel,
-                model: products.model,
-                feature: products.feature,
-                productImage: images
-            })
-            await newProduct.save()
-            res.redirect("/admin/products")
-            // res.json("success")
-        } else {
-
-            res.json("failed");
+        const productExists = await Product.findOne({ productName: products.productName });
+        if (productExists) {
+            return res.json({ success: false, message: 'Product already exists' });
         }
 
+        const images = [];
+        if (req.files && req.files.length > 0) {
+            for (let i = 0; i < req.files.length; i++) {
+                images.push(req.files[i].filename);
+            }
+        }
+
+        const newProduct = new Product({
+            id: Date.now(),
+            productName: products.productName,
+            description: products.description,
+            brand: products.brand,
+            category: products.category,
+            regularPrice: products.regularPrice,
+            salePrice: products.salePrice || products.regularPrice,
+            createdOn: new Date(),
+            quantity: products.quantity,
+            pixel: products.pixel,
+            model: products.model,
+            feature: products.feature,
+            productImage: images
+        });
+
+        await newProduct.save();
+
+        res.json({ success: true });
+
     } catch (error) {
-        console.log(error.message);
+        console.error("Error adding product:", error.message);
+        res.status(500).json({ success: false, message: "Failed to add product. Please try again later." });
     }
-}
+};
+
 
 const getEditProduct = async (req, res) => {
     try {

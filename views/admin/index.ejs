@@ -9,18 +9,44 @@
     
    <!-- Filter Form -->
    <form id="filterForm" class="row" method="GET" action="/admin">
-    <!-- Single Year Selection -->
+    <!-- Year Selection -->
     <div class=" col-6">
         <label for="selectedYear">Select Year</label>
-        <input type="number" id="selectedYear" name="year" class="form-control" min="2000" max="<%= new Date().getFullYear() %>">
+        <select id="selectedYear" name="year" class="form-control">
+            <% for(let i = 2000; i <= new Date().getFullYear(); i++) { %>
+                <option value="<%= i %>" <%= year === i ? 'selected' : '' %>><%= i %></option>
+            <% } %>
+        </select>
+        
     </div>
-    
+
+    <!-- Month Selection -->
+    <div class=" col-6">
+        <label for="selectedMonth">Select Month</label>
+        <select id="selectedMonth" name="month" class="form-control">
+          
+            <option value="1" <%= month === 1 ? 'selected' : '' %>>January</option>
+            <option value="2" <%= month === 2 ? 'selected' : '' %>>February</option>
+            <option value="3" <%= month === 3 ? 'selected' : '' %>>March</option>
+            <option value="4" <%= month === 4 ? 'selected' : '' %>>April</option>
+            <option value="5" <%= month === 5 ? 'selected' : '' %>>May</option>
+            <option value="6" <%= month === 6 ? 'selected' : '' %>>June</option>
+            <option value="7" <%= month === 7 ? 'selected' : '' %>>July</option>
+            <option value="8" <%= month === 8 ? 'selected' : '' %>>August</option>
+            <option value="9" <%= month === 9 ? 'selected' : '' %>>September</option>
+            <option value="10" <%= month === 10 ? 'selected' : '' %>>October</option>
+            <option value="11" <%= month === 11 ? 'selected' : '' %>>November</option>
+            <option value="12" <%= month === 12 ? 'selected' : '' %>>December</option>
+        </select>
+        
+    </div>
 
     <!-- Submit Button -->
     <div class="col-md-2 col-6 align-self-end">
         <button id="filterButton" class="btn btn-primary" type="submit">Filter</button>
     </div>
 </form>
+
 
     </div>
     <div class="row">
@@ -281,7 +307,7 @@
             existingChart.destroy();
         }
 
-        new Chart(ctx, {
+        var lineChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -317,6 +343,60 @@
                 }
             }
         });
+
+        // Create pie chart
+        function createPieChart(monthData) {
+            var pieData = monthData.map(dayData => dayData.sales); // Assuming monthData contains daily sales
+
+            var pieCtx = document.getElementById('pieChart').getContext('2d');
+            var pieChart = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7', 'Day 8', 'Day 9', 'Day 10'], // Change labels accordingly
+                    datasets: [{
+                        label: 'Daily Sales',
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)',
+                            'rgba(153, 102, 255, 0.2)',
+                            'rgba(255, 159, 64, 0.2)',
+                            'rgba(255, 99, 132, 0.2)',
+                            'rgba(54, 162, 235, 0.2)',
+                            'rgba(255, 206, 86, 0.2)',
+                            'rgba(75, 192, 192, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)'
+                        ],
+                        data: pieData
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Example usage
+        // You need to call createPieChart with the data for the selected month
+        // createPieChart(selectedMonthData);
     });
 </script>
+
 <%- include("../partials/adminFooter") %>

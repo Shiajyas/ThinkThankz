@@ -213,6 +213,17 @@
                                             <span>₹<%= product[i].salePrice.toLocaleString('en-IN') %></span>
                                             <span class="old-price">₹<%= product[i].regularPrice.toLocaleString('en-IN') %></span>
                                         </div>
+                                        
+                                                     <div class="product-price">
+                                                          <% if (product[i].quantity == 0) { %>
+                                                        
+                                                            <span style="color: red; font-weight:300">Out of Stock</span>
+                                                              
+                                                            <% } else { %>
+                                                                <span class="price-label"><p>Stock left: <%= product[i].quantity %></p></span>
+                                                            <% } %>
+                                                     </div>
+                                                        
                                         <!-- Add To Cart Button -->
                                         <div class="product-action-1 show">
                                             <a aria-label="Add To Cart" onclick="addToCart('<%=product[i]._id%>')" class="action-btn hover-up" ><i class="fi-rs-shopping-bag-add"></i></a>
@@ -235,24 +246,29 @@
 
 
 
-
                 <% if (totalPages) { %>
                     <div class="pagination">
-                      <% if (currentPage > 1) { %>
-                        <button class="btn btn-sm"><a href="/shop?page=<%= currentPage - 1 %>">Previous</a></button>
-                      <% } %>
-                  
-                      <% for (let i = 1; i <= totalPages; i++) { %> 
-                        <button class="btn btn-sm <%= i === currentPage ? 'active' : '' %>">
-                          <a href="/shop?page=<%= i %>"><%= i %></a>
-                        </button>
-                      <% } %>
-                  
-                      <% if (currentPage < totalPages) { %>
-                        <button class="btn btn-sm"><a href="/shop?page=<%= currentPage + 1 %>">Next</a></button>
-                      <% } %>
+                        <% if (currentPage > 1) { %>
+                            <button class="btn btn-sm">
+                                <a href="<%= getPaginationLink(currentPage - 1) %>">Previous</a>
+                            </button>
+                        <% } %>
+                
+                        <% for (let i = 1; i <= totalPages; i++) { %>
+                            <button class="btn btn-sm <%= i === currentPage ? 'active' : '' %>">
+                                <a href="<%= getPaginationLink(i) %>"><%= i %></a>
+                            </button>
+                        <% } %>
+                
+                        <% if (currentPage < totalPages) { %>
+                            <button class="btn btn-sm">
+                                <a href="<%= getPaginationLink(currentPage + 1) %>">Next</a>
+                            </button>
+                        <% } %>
                     </div>
-                  <% } %>
+                <% } %>
+                
+                
                   
             </div>
             <div class="col-lg-3 primary-sidebar sticky-sidebar">
@@ -310,6 +326,22 @@
 
 
 <script>
+
+function getPaginationLink(page) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const category = urlParams.get('category');
+        const brand = urlParams.get('brand');
+        const sort = urlParams.get('sort');
+
+        const params = new URLSearchParams();
+        if (category) params.set('category', category);
+        if (brand) params.set('brand', brand);
+        if (sort) params.set('sort', sort);
+        params.set('page', page);
+
+        return `/shop?${params.toString()}`;
+    }
+
     function addToCart(prodId) {
 
         var quantity = 1;
@@ -492,73 +524,79 @@ function getCurrentPageFromURL(element) {
         </div>
     </div>
 </div>
-</div>
-
 <script>
+
+
     function handleSortChange(selectedOption) {
-    const category = document.getElementById('categoryFilter').value || null;
-    const brand = document.getElementById('brandFilter').value || null;
-    const urlParams = new URLSearchParams(window.location.search);
+        const category = document.getElementById('categoryFilter').value || null;
+        const brand = document.getElementById('brandFilter').value || null;
+        const urlParams = new URLSearchParams(window.location.search);
 
-    if (category) {
-        urlParams.set('category', category);
-    } else {
-        urlParams.delete('category');
+        if (category) {
+            urlParams.set('category', category);
+        } else {
+            urlParams.delete('category');
+        }
+
+        if (brand) {
+            urlParams.set('brand', brand);
+        } else {
+            urlParams.delete('brand');
+        }
+
+        urlParams.set('sort', selectedOption);
+
+        const newUrl = `${window.location.origin}/filter?${urlParams.toString()}`;
+        window.location.href = newUrl;
     }
 
-    if (brand) {
-        urlParams.set('brand', brand);
-    } else {
-        urlParams.delete('brand');
+    function handleCategoryChange(selectedCategory) {
+        const sort = document.getElementById('sortByDropdown').value;
+        const brand = document.getElementById('brandFilter').value || null;
+        const urlParams = new URLSearchParams(window.location.search);
+
+        if (selectedCategory) {
+            urlParams.set('category', selectedCategory);
+        } else {
+            urlParams.delete('category');
+        }
+
+        if (brand) {
+            urlParams.set('brand', brand);
+        } else {
+            urlParams.delete('brand');
+        }
+
+        urlParams.set('sort', sort);
+
+        const newUrl = `${window.location.origin}/filter?${urlParams.toString()}`;
+        window.location.href = newUrl;
     }
 
-    urlParams.set('sort', selectedOption);
-    window.location.search = urlParams.toString();
-}
+    function handleBrandChange(selectedBrand) {
+        const sort = document.getElementById('sortByDropdown').value;
+        const category = document.getElementById('categoryFilter').value || null;
+        const urlParams = new URLSearchParams(window.location.search);
 
-function handleCategoryChange(selectedCategory) {
-    const sort = document.getElementById('sortByDropdown').value;
-    const brand = document.getElementById('brandFilter').value || null;
-    const urlParams = new URLSearchParams(window.location.search);
+        if (selectedBrand) {
+            urlParams.set('brand', selectedBrand);
+        } else {
+            urlParams.delete('brand');
+        }
 
-    if (selectedCategory) {
-        urlParams.set('category', selectedCategory);
-    } else {
-        urlParams.delete('category');
+        if (category) {
+            urlParams.set('category', category);
+        } else {
+            urlParams.delete('category');
+        }
+
+        urlParams.set('sort', sort);
+
+        const newUrl = `${window.location.origin}/filter?${urlParams.toString()}`;
+        window.location.href = newUrl;
     }
-
-    if (brand) {
-        urlParams.set('brand', brand);
-    } else {
-        urlParams.delete('brand');
-    }
-
-    urlParams.set('sort', sort);
-    window.location.search = urlParams.toString();
-}
-
-function handleBrandChange(selectedBrand) {
-    const sort = document.getElementById('sortByDropdown').value;
-    const category = document.getElementById('categoryFilter').value || null;
-    const urlParams = new URLSearchParams(window.location.search);
-
-    if (selectedBrand) {
-        urlParams.set('brand', selectedBrand);
-    } else {
-        urlParams.delete('brand');
-    }
-
-    if (category) {
-        urlParams.set('category', category);
-    } else {
-        urlParams.delete('category');
-    }
-
-    urlParams.set('sort', sort);
-    window.location.search = urlParams.toString();
-}
-
 </script>
+
 
 <script>
     function addToCart(prodId) {

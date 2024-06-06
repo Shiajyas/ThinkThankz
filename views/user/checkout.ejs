@@ -54,80 +54,90 @@
                             <div class="table-responsive order_table text-center">
                                 <table class="table mt-40">
                                     <thead>
-                                        <tr>
-                                            <th>Image</th>
-                                            <th>Product</th>
-                                            <th>Quantity</th>
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-
-                                        <% if (isSingle===true) { %>
-                                            <% if (product && Array.isArray(product) && product.length> 0) { %>
-                                                <% for (let i=0; i < product.length; i++) { %>
-                                                    <tr>
-                                                        <td class="image product-thumbnail"><img
-                                                                src="<%= product[i].productImage[0] %>"
-                                                                alt="#"></td>
-                                                        <td>
-                                                            <h5><a href="shop-product-full.html">
-                                                                    <%= product[i].productName %>
-                                                                </a></h5>
-                                                        </td>
-                                                        <td>
-
-                                                            <p>1</p>
-
-                                                        </td>
-                                                        <td>
-                                                            <%= product[i].salePrice %>
-                                                        </td>
-                                                    </tr>
-                                                    <% } %>
-                                                        <% } else { %>
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Image</th>
+                                                    <th>Product</th>
+                                                    <th>Regular Price</th>
+                                                    <th>Sale Price</th>
+                                                    <th>Offer</th>
+                                                    <th>Final Price</th>
+                                                    <th>Quantity</th>
+                                                    <th>Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <% if (isSingle === true) { %>
+                                                    <% if (product && Array.isArray(product) && product.length > 0) { %>
+                                                        <% for (let i = 0; i < product.length; i++) { %>
                                                             <tr>
-                                                                <td colspan="4">No products found</td>
+                                                                <td class="image product-thumbnail"><img src="<%= product[i].productImage[0] %>" alt="#"></td>
+                                                                <td>
+                                                                    <h5><a href="shop-product-full.html"><%= product[i].productName %></a></h5>
+                                                                </td>
+                                                                <td>
+                                                                    <%= product[i].regularPrice %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= product[i].salePrice %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= product[i].regularPrice - product[i].salePrice %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= product[i].salePrice %>
+                                                                </td>
+                                                                <td>
+                                                                    <p>1</p>
+                                                                </td>
+                                                                <td>
+                                                                    <%= product[i].salePrice %>
+                                                                </td>
                                                             </tr>
-                                                            <% } %>
-                                                                <% }else{ %>
-
-
-                                                                    <% if (data.length> 0) { %>
-
-                                                                        <% for (let i=0; i < data.length; i++) { %>
-
-                                                                            <tr>
-                                                                                <td class="image product-thumbnail">
-                                                                                    <img src="/uploads/product-images/<%= data[i].productDetails[0].productImage[0] %>"
-                                                                                        alt="#" />
-                                                                                </td>
-                                                                                <td>
-                                                                                    <h5>
-                                                                                        <%= data[i].productDetails[0].productName
-                                                                                            %>
-                                                                                    </h5>
-                                                                                </td>
-                                                                                <td>
-                                                                                    <%= data[i].quantity %>
-                                                                                </td>
-                                                                                <td>
-                                                                                    ₹<span> <text>
-                                                                                            <%= data[i].productDetails[0].salePrice
-                                                                                                * data[i].quantity %>
-                                                                                        </text>
-                                                                                </td>
-                                                                            </tr>
-
-
-                                                                            <% } %>
-
-                                                                                <% } %>
-
-
-                                                                                    <% } %>
-                                    </tbody>
-
+                                                        <% } %>
+                                                    <% } else { %>
+                                                        <tr>
+                                                            <td colspan="8">No products found</td>
+                                                        </tr>
+                                                    <% } %>
+                                                <% } else { %>
+                                                    <% if (data.length > 0) { %>
+                                                        <% for (let i = 0; i < data.length; i++) { %>
+                                                            <tr>
+                                                                <td class="image product-thumbnail"><img src="/uploads/product-images/<%= data[i].productDetails[0].productImage[0] %>" alt="#" /></td>
+                                                                <td>
+                                                                    <h5><%= data[i].productDetails[0].productName %></h5>
+                                                                </td>
+                                                                <td>
+                                                                    <%= data[i].productDetails[0].regularPrice %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= data[i].productDetails[0].salePrice %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= data[i].productDetails[0].regularPrice - data[i].productDetails[0].salePrice %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= data[i].productDetails[0].salePrice %>
+                                                                </td>
+                                                                <td>
+                                                                    <%= data[i].quantity %>
+                                                                </td>
+                                                                <td>
+                                                                    ₹<span><text><%= data[i].productDetails[0].salePrice * data[i].quantity %></text></span>
+                                                                </td>
+                                                            </tr>
+                                                        <% } %>
+                                                    <% } else { %>
+                                                        <tr>
+                                                            <td colspan="8">No products found</td>
+                                                        </tr>
+                                                    <% } %>
+                                                <% } %>
+                                            </tbody>
+                                        </table>
+                                        
 
 
                                     <% let totalAmount=0; %>

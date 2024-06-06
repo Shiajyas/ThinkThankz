@@ -14,50 +14,50 @@
                             <div class="mb-20">
                                 <h4>Your Orders</h4>
                             </div>
-
-
-
-                            <div class="table-responsive order_table text-center">
-                                <table class="table mt-40">
-                                    <thead>
-                                        <tr>
-                                            <th>Image</th>
-                                            <th>Product</th>
-                                            <th>Quantity</th>
-                                            <th>Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-
-                                        <% if (product && Array.isArray(product) && product.length> 0) { %>
-                                            <% for (let i=0; i < product.length; i++) { %>
+                        
+                            <% if (product && Array.isArray(product) && product.length > 0) { %>
+                                <div class="table-responsive order_table text-center">
+                                    <table class="table mt-40">
+                                        <thead>
+                                            <tr>
+                                                <th>Image</th>
+                                                <th>Product</th>
+                                                <th>Quantity</th>
+                                                <th>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% for (let i = 0; i < product.length; i++) { %>
                                                 <tr>
-                                                    <td class="image product-thumbnail"><img
-                                                            src="/uploads/product-images/<%= product[i].productImage[0] %>"
-                                                            alt="#"></td>
-                                                    <td>
-                                                        <h5><a href="shop-product-full.html">
-                                                                <%= product[i].productName %>
-                                                            </a></h5>
+                                                    <td class="image product-thumbnail">
+                                                        <img src="/uploads/product-images/<%= product[i].productImage[0] %>" alt="#">
                                                     </td>
-                                                       <td>
-                                                    
-                                                    </td> 
+                                                    <td>
+                                                        <h5>
+                                                            <a href="shop-product-full.html">
+                                                                <%= product[i].productName %>
+                                                            </a>
+                                                        </h5>
+                                                    </td>
+                                                    <td>
+                                                        <!-- Add quantity information here if available -->
+                                                        <%= product[i].quantity %>
+                                                    </td>
                                                     <td>
                                                         <%= product[i].salePrice %>
                                                     </td>
                                                 </tr>
-                                                <% } %>
-                                                    <% } else { %>
-                                                        <tr>
-                                                            <td colspan="4">No products found</td>
-                                                        </tr>
-                                                        <% } %>
-
-                                    </tbody>
-                                </table>
-                            </div>
+                                            <% } %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <% } else { %>
+                                <div class="no-items-message">
+                                 <img src="https://cdn.dribbble.com/users/844846/screenshots/2981974/media/ae264d741cae09c2377235d9705f9cbc.png?resize=800x600&vertical=center" alt="">
+                                </div>
+                            <% } %>
                         </div>
+                        
                     </div>
                     <div class="col-6 mt-50 ">
                         <div class="payment_method">

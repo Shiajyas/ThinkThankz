@@ -175,6 +175,7 @@
                         <!-- Publish Button -->
                         <div>
                             <button class="btn btn-md rounded font-sm hover-up" type="button" onclick="validateAndSubmit()">Publish</button>
+
                         </div>
                     </form>
                 </div>
@@ -183,137 +184,136 @@
     </div>
 </section>
 
+
 <script src="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
- function viewImage(event, index) {
-    let input = event.target;
-    let reader = new FileReader();
-
-    reader.onload = function () {
-        let dataURL = reader.result;
-        let image = document.getElementById('imgView' + index);
-        image.src = dataURL;
-
-        // Initialize Cropper.js on the image
-        let cropper = new Cropper(image, {
-            aspectRatio: 1,
-            viewMode: 1,
-            guides: true,
-            background: false,
-            autoCropArea: 1,
-            zoomable: true
-        });
-
-        // Show the image cropper container
-        let cropperContainer = document.querySelector('#croppedImg' + index).parentNode;
-        cropperContainer.style.display = 'block';
-
-        // Update the cropped image when the "Save" button is clicked
-        let saveButton = document.querySelector('#saveButton' + index);
-        saveButton.addEventListener('click', async function () {
-            try {
-                // Get the cropped canvas with specified dimensions
-                let croppedCanvas = cropper.getCroppedCanvas({
-                    width: 1500,
-                    height: 1500
-                });
-
-                // Get the cropped image element
-                let croppedImage = document.getElementById("croppedImg" + index);
-
-                // Set the source of the cropped image element to the cropped canvas
-                croppedImage.src = croppedCanvas.toDataURL('image/jpeg', 1.0);
-
-                // Generate a unique name for the cropped image file based on the current timestamp
-                let timestamp = new Date().getTime();
-                let fileName = `cropped-img-${timestamp}-${index}.png`;
-
-                // Convert the cropped canvas to a Blob
-                let blob = await new Promise((resolve) => croppedCanvas.toBlob(resolve, 'image/jpeg', 1.0));
-
-                // Create a new File object with the Blob
-                let imgFile = new File([blob], fileName, { type: 'image/png' });
-
-                // Get the input element
-                let input = document.getElementById('input' + index);
-
-                // Create a new DataTransfer object
-                const fileList = new DataTransfer();
-
-                // Add the image file to the DataTransfer object
-                fileList.items.add(imgFile);
-
-                // Set the files property of the input element to the files in the DataTransfer object
-                input.files = fileList.files;
-            } catch (error) {
-                console.error('Error saving cropped image:', error);
-            }
-        });
-    };
-    reader.readAsDataURL(input.files[0]);
-}
-
+    function viewImage(event, index) {
+        let input = event.target;
+        let reader = new FileReader();
+    
+        reader.onload = function () {
+            let dataURL = reader.result;
+            let image = document.getElementById('imgView' + index);
+            image.src = dataURL;
+    
+            let cropper = new Cropper(image, {
+                aspectRatio: 1,
+                viewMode: 1,
+                guides: true,
+                background: false,
+                autoCropArea: 1,
+                zoomable: true
+            });
+    
+            let cropperContainer = document.querySelector('#croppedImg' + index).parentNode;
+            cropperContainer.style.display = 'block';
+    
+            let saveButton = document.querySelector('#saveButton' + index);
+            saveButton.addEventListener('click', async function () {
+                try {
+                    let croppedCanvas = cropper.getCroppedCanvas({
+                        width: 1500,
+                        height: 1500
+                    });
+    
+                    let croppedImage = document.getElementById("croppedImg" + index);
+                    croppedImage.src = croppedCanvas.toDataURL('image/jpeg', 1.0);
+    
+                    let timestamp = new Date().getTime();
+                    let fileName = `cropped-img-${timestamp}-${index}.png`;
+    
+                    let blob = await new Promise((resolve) => croppedCanvas.toBlob(resolve, 'image/jpeg', 1.0));
+    
+                    let imgFile = new File([blob], fileName, { type: 'image/png' });
+    
+                    let input = document.getElementById('input' + index);
+    
+                    const fileList = new DataTransfer();
+                    fileList.items.add(imgFile);
+                    input.files = fileList.files;
+                } catch (error) {
+                    console.error('Error saving cropped image:', error);
+                }
+            });
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+    
     function validateForm() {
         let isValid = true;
-
-        // Validate Product Name
+    
         let productName = document.getElementById('product_name').value;
         if (productName.trim() === "") {
-            document.getElementById('productName-error').innerText = "Product Name is required.";
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Product Name is required.',
+            });
             isValid = false;
-        } else {
-            document.getElementById('productName-error').innerText = "";
         }
-
-        // Validate Brand
+    
         let brand = document.querySelector('select[name="brand"]').value;
         if (brand.trim() === "") {
-            alert("Please select a Brand.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Please select a Brand.',
+            });
             isValid = false;
         }
-
-        // Validate Description
+    
         let description = document.querySelector('textarea[name="description"]').value;
         if (description.trim() === "") {
-            document.getElementById('description-error').innerText = "Description is required.";
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Description is required.',
+            });
             isValid = false;
-        } else {
-            document.getElementById('description-error').innerText = "";
         }
-
-        // Validate Regular Price
+    
         let regularPrice = document.querySelector('input[name="regularPrice"]').value;
         if (regularPrice.trim() === "" || isNaN(regularPrice) || Number(regularPrice) <= 0) {
-            document.getElementById('regularPrice-error').innerText = "Regular Price must be a positive number.";
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Regular Price must be a positive number.',
+            });
             isValid = false;
-        } else {
-            document.getElementById('regularPrice-error').innerText = "";
         }
-
-        // Validate Quantity
+    
         let quantity = document.querySelector('input[name="quantity"]').value;
         if (quantity.trim() === "" || isNaN(quantity) || Number(quantity) < 0) {
-            document.getElementById('quantity-error').innerText = "Quantity must be a non-negative number.";
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Quantity must be a non-negative number.',
+            });
             isValid = false;
-        } else {
-            document.getElementById('quantity-error').innerText = "";
         }
-
-        // Validate Model
+    
         let model = document.querySelector('input[name="model"]').value;
         if (model.trim() === "") {
-            alert("Model is required.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Model is required.',
+            });
             isValid = false;
         }
-
-        // Validate Category
+    
         let category = document.querySelector('select[name="category"]').value;
         if (category.trim() === "") {
-            alert("Please select a Category.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Please select a Category.',
+            });
             isValid = false;
         }
-
-        // Validate Images (At least one image should be uploaded)
+    
         let imageInputs = ['input1', 'input2', 'input3', 'input4'];
         let imageUploaded = false;
         for (let i = 0; i < imageInputs.length; i++) {
@@ -324,19 +324,64 @@
             }
         }
         if (!imageUploaded) {
-            alert("At least one image must be uploaded.");
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'At least one image must be uploaded.',
+            });
             isValid = false;
         }
-
+    
         return isValid;
     }
-
+    
     function validateAndSubmit() {
         if (validateForm()) {
-            document.querySelector('form').submit();
+            let formData = new FormData(document.querySelector('form'));
+    
+            fetch('/admin/addProducts', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Product added successfully!',
+                        showCancelButton: true,
+                        confirmButtonText: 'Add More',
+                        cancelButtonText: 'View Products'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Redirect to the page for adding more products
+                            window.location.href = '/admin/addProducts';
+                        } else {
+                            // Redirect to the page for viewing products
+                            window.location.href = '/admin/products';
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to add product. ' + data.message,
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Server error, please try again later.',
+                });
+                console.error('Error:', error);
+            });
         }
     }
-</script>
+    </script>
+    
 
 
 <%- include("../partials/adminFooter") %>

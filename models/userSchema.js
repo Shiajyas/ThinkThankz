@@ -9,6 +9,9 @@ const userSchema = Mongoose.Schema({
     
         set: (value) => value.charAt(0).toUpperCase() + value.slice(1)
     },
+    googleId:{
+        type: Number
+    },
     email: {
         type: String,
         required: true,
@@ -16,12 +19,12 @@ const userSchema = Mongoose.Schema({
     },
     phone: {
         type: Number,
-        required: true,
+       
         // unique: true
     },
     password: {
         type: String,
-        required: true
+        
     },
     createdOn: {
         type: String
@@ -49,7 +52,7 @@ const userSchema = Mongoose.Schema({
     },
     referalCode: {
         type: String,
-        required: true,
+       
     },
     redeemed: {
         type: Boolean,

@@ -5,6 +5,7 @@ const User = require("../models/userSchema");
 const Brand = require("../models/brandSchema")
 const Product = require("../models/productSchema");
 const Category = require("../models/categorySchema");
+const Banner = require("../models/bannerSchema")
 const mongoose = require('mongoose');
 const ObjectId = mongoose.Types.ObjectId;
 const twilio = require("twilio")
@@ -35,24 +36,31 @@ const securePassword = async (password) => {
 }
 
 //Loading the Home page
-
 const getHomePage = async (req, res) => {
     try {
         const today = new Date().toISOString();
-        const user = req.session.user
+        const user = req.session.user;
+
+        console.log("User session:", user); // Check if user session is set
+
+        const findBanner = await Banner.find({
+            startDate: { $lt: new Date(today) },
+            endDate: { $gt: new Date(today) }
+        });
       
-        // console.log(findBanner);
-        const userData = await User.findOne({})
-        const brandData = await Brand.find({ isBlocked: false })
-        const productData = await Product.find({ isBlocked: false }).sort({ id: -1 }).limit(4)
+        const userData = await User.findOne({});
+        const brandData = await Brand.find({ isBlocked: false });
+        const productData = await Product.find({ isBlocked: false }).sort({ id: -1 }).limit(4);
 
         if (user) { 
-            res.render("home", { user: userData, data: brandData, products: productData, banner: [] })
+            console.log("User is logged in:", userData); // Check user data if logged in
+            res.render("home", { user: userData, data: brandData, products: productData, banner: findBanner });
         } else {
-            res.render("home", { data: brandData, products: productData, banner: [] })
+            console.log("User is not logged in"); // Check if user is not logged in
+            res.render("home", { data: brandData, products: productData, banner: findBanner });
         }
     } catch (error) {
-        console.log(error.message)
+        console.log("Error:", error.message); // Log any errors that occur
     }
 }
 
@@ -100,47 +108,59 @@ function generateOtp() {
 //User Registration
 const signupUser = async (req, res) => {
     try {
-        const { email, phone, name, referalCode, password, cPassword } = req.body;
-        req.session.referalCode = referalCode;
+        const { email, phone, name, referralCode, password, cPassword } = req.body;
+        req.session.referralCode = referralCode;
         req.session.phone = phone;
 
+        // Validate input
         if (!name || name.trim() === "") {
-            return res.render("signup", { message: "Give valid UserName" });
+            return res.render("signup", { message: "Please provide a valid username." });
         }
-
-        const findUser = await User.findOne({ email });
+        if (!email || email.trim() === "") {
+            return res.render("signup", { message: "Please provide a valid email." });
+        }
+        if (!phone || phone.trim() === "") {
+            return res.render("signup", { message: "Please provide a valid phone number." });
+        }
+        if (!password || password.trim() === "") {
+            return res.render("signup", { message: "Please provide a valid password." });
+        }
         if (password !== cPassword) {
-            return res.render("signup", { message: "The confirm pass is not matching" });
+            return res.render("signup", { message: "Passwords do not match." });
         }
 
-        if (findUser) {
-            console.log("User already Exist");
-            return res.render("signup", { message: "User with this email already exists" });
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            console.log("User already exists");
+            return res.render("signup", { message: "User with this email already exists." });
         }
 
-        const twilioClient = new twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+        // Initialize Twilio client
+        // const twilioClient = new twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 
         // Generate OTP
-        var otp = generateOtp();
+        const otp = generateOtp();
         console.log(`Generated OTP: ${otp}`);
 
         // Ensure 'from' number is a valid Twilio number
-        const fromNumber = +14178072463; // Replace with your Twilio number
-        const toNumber = phone.startsWith('+') ? phone : `+91${phone}`; // Ensure correct format
+        // const fromNumber = process.env.TWILIO_NUMBER; // Replace with your Twilio number from environment variables
+        // const toNumber = phone.startsWith('+') ? phone : `+91${phone}`; // Ensure correct format
 
-        try {
-            const message = await twilioClient.messages.create({
-                body: `Your OTP is ${otp}`,
-                to: toNumber,
-                from: fromNumber,
-            });
-            console.log(`Twilio message sent: ${message.sid}`);
-        } catch (twilioError) {
-            console.error('Twilio Error:', twilioError);
-            return res.status(500).render("signup", { message: "Failed to send OTP via SMS" });
-        }
+        // try {
+        //     // Send OTP via SMS
+        //     const message = await twilioClient.messages.create({
+        //         body: `Your OTP is ${otp}`,
+        //         to: toNumber,
+        //         from: fromNumber,
+        //     });
+        //     console.log(`Twilio message sent: ${message.sid}`);
+        // } catch (twilioError) {
+        //     console.error('Twilio Error:', twilioError);
+        //     return res.status(500).render("signup", { message: "Failed to send OTP via SMS." });
+        // }
 
-        // Send email with OTP
+        // Initialize Nodemailer transporter
         const transporter = nodemailer.createTransport({
             host: process.env.EMAIL_HOST,
             port: process.env.EMAIL_PORT,
@@ -151,23 +171,24 @@ const signupUser = async (req, res) => {
         });
 
         try {
+            // Send OTP via email
             const info = await transporter.sendMail({
                 from: process.env.EMAIL_USER,
                 to: email,
                 subject: "Verify Your Account ✔",
                 text: `Your OTP is ${otp}`,
-                html: `<b><h4>Your OTP ${otp}</h4><br><a href="">Click here</a></b>`,
+                html: `<b><h4>Your OTP is ${otp}</h4><br><a href="">Click here</a></b>`,
             });
             console.log("Email sent", info.messageId);
-            
+
+            // Store OTP and user data in session
             req.session.userOtp = otp;
             req.session.userData = req.body;
             res.render("verify-otp", { email });
         } catch (emailError) {
             console.error('Email Error:', emailError);
-            return res.status(500).render("signup", { message: "Failed to send OTP via email" });
+            return res.status(500).render("signup", { message: "Failed to send OTP via email." });
         }
-
     } catch (error) {
         console.log('Internal Server Error:', error.message);
         res.status(500).send("Internal Server Error");
@@ -196,23 +217,23 @@ const resendOtp = async (req, res) => {
         var newOtp = generateOtp();
         console.log(`Resending OTP to ${email}. New OTP: ${newOtp}`);
 
-        const twilioClient = new twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+        // const twilioClient = new twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
         
-        // Ensure 'from' number is a valid Twilio number
-        const fromNumber = +14178072463; // Replace with your Twilio number
-        const toNumber = phone.startsWith('+') ? phone : `+91${phone}`; // Ensure correct format
+        // // Ensure 'from' number is a valid Twilio number
+        // const fromNumber = +14178072463; // Replace with your Twilio number
+        // const toNumber = phone.startsWith('+') ? phone : `+91${phone}`; // Ensure correct format
 
-        try {
-            const message = await twilioClient.messages.create({
-                body: `Your OTP is ${newOtp}`,
-                to: toNumber,
-                from: fromNumber,
-            });
-            console.log(`Twilio message sent: ${message.sid}`);
-        } catch (twilioError) {
-            console.error('Twilio Error:', twilioError);
-            return res.json({ success: false, message: 'Failed to resend OTP via SMS' });
-        }
+        // try {
+        //     const message = await twilioClient.messages.create({
+        //         body: `Your OTP is ${newOtp}`,
+        //         to: toNumber,
+        //         from: fromNumber,
+        //     });
+        //     console.log(`Twilio message sent: ${message.sid}`);
+        // } catch (twilioError) {
+        //     console.error('Twilio Error:', twilioError);
+        //     return res.json({ success: false, message: 'Failed to resend OTP via SMS' });
+        // }
 
         const transporter = nodemailer.createTransport({
             service: "gmail",
@@ -402,7 +423,6 @@ const getProductDetailsPage = async (req, res) => {
     }
 }
 
-
 const getShopPage = async (req, res) => {
     try {
         const user = req.session.id;
@@ -415,8 +435,15 @@ const getShopPage = async (req, res) => {
         let currentPage = parseInt(req.query.page) || 1;
         let startIndex = (currentPage - 1) * itemsPerPage;
         let endIndex = startIndex + itemsPerPage;
-        let totalPages = Math.ceil(products.length / 6);
+        let totalPages = Math.ceil(products.length / itemsPerPage);
         const currentProduct = products.slice(startIndex, endIndex);
+
+        // Function to generate pagination links with query parameters
+        const getPaginationLink = (page) => {
+            const urlParams = new URLSearchParams(req.query);
+            urlParams.set('page', page);
+            return `/shop?${urlParams.toString()}`;
+        };
 
         res.render("shop", {
             user: user,
@@ -426,20 +453,20 @@ const getShopPage = async (req, res) => {
             count: count,
             totalPages: totalPages,
             currentPage: currentPage,
+            getPaginationLink: getPaginationLink,
             selectedCategory: req.query.category || null,
             selectedBrand: req.query.brand || null
         });
     } catch (error) {
         console.log(error.message);
     }
-}
+};
 
 const filterByPrice = async (req, res) => {
     try {
         const user = req.session.user;
         const brands = await Brand.find({});
         const categories = await Category.find({ isListed: true });
-        console.log(req.query);
         const findProducts = await Product.find({
             $and: [
                 { salePrice: { $gt: req.query.gt } },
@@ -452,8 +479,15 @@ const filterByPrice = async (req, res) => {
         let currentPage = parseInt(req.query.page) || 1;
         let startIndex = (currentPage - 1) * itemsPerPage;
         let endIndex = startIndex + itemsPerPage;
-        let totalPages = Math.ceil(findProducts.length / 6);
+        let totalPages = Math.ceil(findProducts.length / itemsPerPage);
         const currentProduct = findProducts.slice(startIndex, endIndex);
+
+        // Function to generate pagination links with query parameters
+        const getPaginationLink = (page) => {
+            const urlParams = new URLSearchParams(req.query);
+            urlParams.set('page', page);
+            return `/shop?${urlParams.toString()}`;
+        };
 
         res.render("shop", {
             user: user,
@@ -462,13 +496,15 @@ const filterByPrice = async (req, res) => {
             brand: brands,
             totalPages: totalPages,
             currentPage: currentPage,
+            getPaginationLink: getPaginationLink,
             selectedCategory: req.query.category || null,
             selectedBrand: req.query.brand || null
         });
     } catch (error) {
         console.log(error.message);
     }
-}
+};
+
 
 const searchProducts = async (req, res) => {
     try {
@@ -522,9 +558,7 @@ const filterProduct = async (req, res) => {
         const findCategory = category ? await Category.findOne({ _id: category }) : null;
         const findBrand = brand ? await Brand.findOne({ _id: brand }) : null;
 
-        const query = {
-            isBlocked: false,
-        };
+        const query = { isBlocked: false };
 
         if (findCategory) {
             query.category = findCategory.name;
@@ -556,8 +590,15 @@ const filterProduct = async (req, res) => {
         let currentPage = parseInt(req.query.page) || 1;
         let startIndex = (currentPage - 1) * itemsPerPage;
         let endIndex = startIndex + itemsPerPage;
-        let totalPages = Math.ceil(findProducts.length / 6);
+        let totalPages = Math.ceil(findProducts.length / itemsPerPage);
         const currentProduct = findProducts.slice(startIndex, endIndex);
+
+        // Function to generate pagination links with query parameters
+        const getPaginationLink = (page) => {
+            const urlParams = new URLSearchParams(req.query);
+            urlParams.set('page', page);
+            return `/filter?${urlParams.toString()}`;
+        };
 
         res.render("shop", {
             user: user,
@@ -566,8 +607,9 @@ const filterProduct = async (req, res) => {
             brand: brands,
             totalPages,
             currentPage,
+            getPaginationLink: getPaginationLink,
             selectedCategory: category || null,
-            selectedBrand: brand || null,
+            selectedBrand: brand || null
         });
 
     } catch (error) {
